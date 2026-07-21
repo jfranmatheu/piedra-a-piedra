@@ -230,9 +230,73 @@ export async function listMyProjects() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
   if (error) throw mapSupabaseError(error);
-  return (data || [])
+
+  const projects = (data || [])
     .filter((r) => r.project)
     .map((r) => ({ ...r.project, myRole: r.role }));
+
+  if (!projects.length) return projects;
+
+  const ids = projects.map((p) => p.id);
+
+  // Stats de progreso + XP por proyecto (una query)
+  const { data: tasks, error: tErr } = await supabase
+    .from("tasks")
+    .select("project_id, done, xp")
+    .in("project_id", ids);
+  if (tErr) throw mapSupabaseError(tErr);
+
+  const { data: stones, error: sErr } = await supabase
+    .from("stones")
+    .select("project_id")
+    .in("project_id", ids);
+  if (sErr) throw mapSupabaseError(sErr);
+
+  const byId = {};
+  for (const id of ids) {
+    byId[id] = {
+      taskTotal: 0,
+      taskDone: 0,
+      totalXp: 0,
+      earnedXp: 0,
+      stoneCount: 0,
+    };
+  }
+  for (const s of stones || []) {
+    if (byId[s.project_id]) byId[s.project_id].stoneCount += 1;
+  }
+  for (const t of tasks || []) {
+    const st = byId[t.project_id];
+    if (!st) continue;
+    const xp = t.xp ?? 0;
+    st.taskTotal += 1;
+    st.totalXp += xp;
+    if (t.done) {
+      st.taskDone += 1;
+      st.earnedXp += xp;
+    }
+  }
+
+  return projects.map((p) => {
+    const st = byId[p.id] || {
+      taskTotal: 0,
+      taskDone: 0,
+      totalXp: 0,
+      earnedXp: 0,
+      stoneCount: 0,
+    };
+    const pct = st.taskTotal
+      ? Math.round((st.taskDone / st.taskTotal) * 100)
+      : 0;
+    return {
+      ...p,
+      stats: {
+        ...st,
+        pct,
+        level: null, // filled client-side with levelFromXp if needed
+      },
+    };
+  });
 }
 
 export async function createProject({ name, description, start_date }) {
