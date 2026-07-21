@@ -102,6 +102,12 @@ export default function DocsStartPage() {
               {t("docs.stones.navTitle")}
             </Link>
             <Link
+              to="/docs/ai"
+              className="rounded-xl border border-border bg-elev px-4 py-2 text-sm font-semibold text-text hover:bg-white/5"
+            >
+              {t("docs.ai.navTitle")}
+            </Link>
+            <Link
               to="/docs/workspace"
               className="rounded-xl border border-border bg-elev px-4 py-2 text-sm font-semibold text-text hover:bg-white/5"
             >

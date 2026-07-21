@@ -1,4 +1,12 @@
-import { ArrowRight, BookOpen, FileCode2, LayoutGrid, Rocket, Users } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  FileCode2,
+  LayoutGrid,
+  Rocket,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import DocsShell, { DocsPageHeader } from "../components/docs/DocsShell";
 import { DOCS_CATALOG, DOCS_CATEGORIES } from "../docs/catalog";
@@ -9,6 +17,7 @@ const ICONS = {
   fileCode: FileCode2,
   layout: LayoutGrid,
   users: Users,
+  sparkles: Sparkles,
 };
 
 export default function DocsIndexPage() {
@@ -85,6 +94,11 @@ export default function DocsIndexPage() {
                         .stones
                       </span>
                     )}
+                    {item.id === "ai" && (
+                      <span className="mt-3 inline-block rounded-md border border-fuchsia-500/30 bg-fuchsia-500/10 px-2 py-0.5 font-mono text-[10px] text-fuchsia-300">
+                        NVIDIA NIM
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -108,6 +122,12 @@ export default function DocsIndexPage() {
             className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-dim hover:bg-white/5 hover:text-text"
           >
             {t("docs.hub.helpStones")}
+          </Link>
+          <Link
+            to="/docs/ai"
+            className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-dim hover:bg-white/5 hover:text-text"
+          >
+            {t("docs.hub.helpAi")}
           </Link>
         </div>
       </section>

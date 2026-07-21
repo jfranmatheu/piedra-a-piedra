@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { useI18n } from "./i18n";
 import { supabaseConfig } from "./lib/supabase";
+import DocsAiPage from "./pages/DocsAiPage";
 import DocsIndexPage from "./pages/DocsIndexPage";
 import DocsStartPage from "./pages/DocsStartPage";
 import DocsStonesPage from "./pages/DocsStonesPage";
@@ -53,6 +54,7 @@ export default function App() {
             <Route path="/docs" element={<DocsIndexPage />} />
             <Route path="/docs/start" element={<DocsStartPage />} />
             <Route path="/docs/stones" element={<DocsStonesPage />} />
+            <Route path="/docs/ai" element={<DocsAiPage />} />
             <Route path="/docs/workspace" element={<DocsWorkspacePage />} />
             <Route path="/docs/team" element={<DocsTeamPage />} />
             <Route path="/login" element={<LoginPage />} />

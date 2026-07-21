@@ -17,6 +17,7 @@ export default function DocsWorkspacePage() {
     { id: "panel", label: d("tocPanel") },
     { id: "tasks", label: d("tocTasks") },
     { id: "xp", label: d("tocXp") },
+    { id: "ai", label: d("tocAi") },
     { id: "settings", label: d("tocSettings") },
   ];
 
@@ -96,6 +97,20 @@ export default function DocsWorkspacePage() {
           </ul>
         </DocsSection>
 
+        <DocsSection id="ai" title={d("aiTitle")}>
+          <p>{d("aiP")}</p>
+          <ul className="list-inside list-disc space-y-1">
+            <li>{d("aiLi1")}</li>
+            <li>{d("aiLi2")}</li>
+            <li>
+              {d("aiLi3")}{" "}
+              <Link to="/docs/ai" className="text-accent hover:underline">
+                {t("docs.ai.navTitle")}
+              </Link>
+            </li>
+          </ul>
+        </DocsSection>
+
         <DocsSection id="settings" title={d("settingsTitle")}>
           <p>{d("settingsP")}</p>
           <ul className="list-inside list-disc space-y-1">
@@ -113,6 +128,10 @@ export default function DocsWorkspacePage() {
         <footer className="border-t border-border pt-8 text-center text-xs text-mute">
           <Link to="/docs" className="text-dim hover:text-text">
             ← {t("docs.nav.allDocs")}
+          </Link>
+          {" · "}
+          <Link to="/docs/ai" className="text-dim hover:text-text">
+            {t("docs.ai.navTitle")}
           </Link>
           {" · "}
           <Link to="/docs/team" className="text-dim hover:text-text">

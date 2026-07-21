@@ -4,6 +4,7 @@ import {
   LayoutGrid,
   Menu,
   Rocket,
+  Sparkles,
   Users,
   X,
 } from "lucide-react";
@@ -18,6 +19,7 @@ const ICONS = {
   fileCode: FileCode2,
   layout: LayoutGrid,
   users: Users,
+  sparkles: Sparkles,
 };
 
 function NavItem({ item, onNavigate }) {

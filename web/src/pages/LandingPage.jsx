@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   Crown,
+  FileCode2,
   Gamepad2,
   Layers,
   Sparkles,
@@ -43,6 +44,39 @@ export default function LandingPage() {
     }
   };
 
+  const features = [
+    {
+      icon: <Layers size={18} className="text-accent" />,
+      title: t("landing.featStones"),
+      body: t("landing.featStonesBody"),
+    },
+    {
+      icon: <Gamepad2 size={18} className="text-emerald-400" />,
+      title: t("landing.featGame"),
+      body: t("landing.featGameBody"),
+    },
+    {
+      icon: <FileCode2 size={18} className="text-cyan-400" />,
+      title: t("landing.featStonesFmt"),
+      body: t("landing.featStonesFmtBody"),
+    },
+    {
+      icon: <Sparkles size={18} className="text-fuchsia-400" />,
+      title: t("landing.featAi"),
+      body: t("landing.featAiBody"),
+    },
+    {
+      icon: <Users size={18} className="text-sky-400" />,
+      title: t("landing.featTeam"),
+      body: t("landing.featTeamBody"),
+    },
+    {
+      icon: <Crown size={18} className="text-violet-400" />,
+      title: t("landing.featMulti"),
+      body: t("landing.featMultiBody"),
+    },
+  ];
+
   return (
     <div className="relative min-h-dvh overflow-x-hidden bg-bg text-text">
       <div className="pointer-events-none fixed inset-0">
@@ -77,7 +111,7 @@ export default function LandingPage() {
             to="/docs"
             className="hidden text-xs font-semibold text-mute hover:text-dim sm:inline"
           >
-            Docs
+            {t("landing.navDocs")}
           </Link>
           <LanguageSwitcher />
           <Link
@@ -121,13 +155,19 @@ export default function LandingPage() {
               >
                 {t("landing.ctaPreview")}
               </a>
+              <Link
+                to="/docs"
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold text-dim hover:border-white/20 hover:text-text"
+              >
+                {t("landing.ctaDocs")}
+              </Link>
             </div>
 
-            <div className="mt-10 grid max-w-md grid-cols-3 gap-3">
+            <div className="mt-10 grid max-w-lg grid-cols-3 gap-3">
               {[
                 { n: "LVL↑", l: t("landing.statXp") },
-                { n: "@", l: t("landing.statInvites") },
-                { n: "3", l: t("landing.statViews") },
+                { n: ".stones", l: t("landing.statStones") },
+                { n: "NIM", l: t("landing.statAi") },
               ].map((s) => (
                 <div
                   key={s.l}
@@ -147,40 +187,52 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="mt-20 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            {
-              icon: <Layers size={18} className="text-accent" />,
-              t: t("landing.featStones"),
-              d: t("landing.featStonesBody"),
-            },
-            {
-              icon: <Gamepad2 size={18} className="text-emerald-400" />,
-              t: t("landing.featGame"),
-              d: t("landing.featGameBody"),
-            },
-            {
-              icon: <Users size={18} className="text-sky-400" />,
-              t: t("landing.featTeam"),
-              d: t("landing.featTeamBody"),
-            },
-            {
-              icon: <Crown size={18} className="text-violet-400" />,
-              t: t("landing.featMulti"),
-              d: t("landing.featMultiBody"),
-            },
-          ].map((f) => (
+        <section className="mt-20 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {features.map((f) => (
             <article
-              key={f.t}
+              key={f.title}
               className="group rounded-3xl border border-white/8 bg-gradient-to-b from-white/[0.05] to-transparent p-5 transition hover:border-accent/25"
             >
               <div className="mb-3 grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-black/30">
                 {f.icon}
               </div>
-              <h3 className="font-bold tracking-tight">{f.t}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-mute">{f.d}</p>
+              <h3 className="font-bold tracking-tight">{f.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-mute">{f.body}</p>
             </article>
           ))}
+        </section>
+
+        <section className="mt-16 rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[0.04] to-transparent p-6 sm:p-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl">
+                {t("landing.docsBandTitle")}
+              </h2>
+              <p className="mt-1.5 max-w-xl text-sm text-dim">
+                {t("landing.docsBandBody")}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                to="/docs/start"
+                className="rounded-xl border border-accent/35 bg-accent/15 px-4 py-2 text-sm font-semibold hover:bg-accent/25"
+              >
+                {t("landing.docsStart")}
+              </Link>
+              <Link
+                to="/docs/stones"
+                className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-dim hover:bg-white/5 hover:text-text"
+              >
+                .stones
+              </Link>
+              <Link
+                to="/docs/ai"
+                className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-dim hover:bg-white/5 hover:text-text"
+              >
+                {t("landing.docsAi")}
+              </Link>
+            </div>
+          </div>
         </section>
 
         <section
@@ -248,9 +300,15 @@ export default function LandingPage() {
 
         <footer className="mt-16 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-8 text-[11px] text-mute">
           <span>🪨 {t("landing.footer")}</span>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Link to="/docs" className="hover:text-dim">
-              Docs
+              {t("landing.navDocs")}
+            </Link>
+            <Link to="/docs/stones" className="hover:text-dim">
+              .stones
+            </Link>
+            <Link to="/docs/ai" className="hover:text-dim">
+              NIM
             </Link>
             <LanguageSwitcher />
             <Link to="/login" className="hover:text-dim">

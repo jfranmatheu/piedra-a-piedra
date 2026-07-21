@@ -275,6 +275,13 @@ color: #06b6d4`}</DocsCode>
             </div>
           </div>
           <p className="mt-3">{d("ieNote")}</p>
+          <p className="mt-2">
+            {d("ieAi")}{" "}
+            <Link to="/docs/ai" className="text-accent hover:underline">
+              {t("docs.ai.navTitle")}
+            </Link>
+            .
+          </p>
         </DocsSection>
 
         <DocsSection id="limits" title={d("limitsTitle")}>
@@ -299,6 +306,10 @@ color: #06b6d4`}</DocsCode>
         <footer className="border-t border-border pt-8 text-center text-xs text-mute">
           <Link to="/docs" className="text-dim hover:text-text">
             ← {t("docs.nav.allDocs")}
+          </Link>
+          {" · "}
+          <Link to="/docs/ai" className="text-dim hover:text-text">
+            {t("docs.ai.navTitle")}
           </Link>
           {" · "}
           <Link to="/docs/start" className="text-dim hover:text-text">

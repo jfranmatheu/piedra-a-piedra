@@ -22,6 +22,15 @@ export const DOCS_CATALOG = [
     border: "border-cyan-500/25",
   },
   {
+    id: "ai",
+    path: "/docs/ai",
+    i18n: "ai",
+    category: "formats",
+    icon: "sparkles",
+    accent: "from-fuchsia-500/20 to-pink-600/10",
+    border: "border-fuchsia-500/25",
+  },
+  {
     id: "workspace",
     path: "/docs/workspace",
     i18n: "workspace",
