@@ -15,10 +15,12 @@ import {
 import { Pencil, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../context/AppContext";
+import { notify } from "../lib/toast";
 import { taskKey } from "../lib/utils";
 import { ProgressBar } from "./ui";
 import FilterBar from "./FilterBar";
 import ViewToggle from "./ViewToggle";
+import NewTaskModal from "./NewTaskModal";
 import StoneEditModal from "./StoneEditModal";
 import { CARD_W, KanbanCardFace, SortableKanbanCard } from "./KanbanCard";
 
@@ -126,6 +128,8 @@ export default function KanbanView() {
   const [cardMap, setCardMap] = useState({});
   const lanesRef = useRef(lanes);
   lanesRef.current = lanes;
+  const [newTaskStone, setNewTaskStone] = useState(null);
+  const [creatingTask, setCreatingTask] = useState(false);
 
   const rebuildFromModel = () => {
     const b = buildLanes(visibleStones, filteredTasks, isDone, showDone);
@@ -384,11 +388,7 @@ export default function KanbanView() {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      const title = prompt("Título de la nueva tarea:");
-                      if (title === null) return;
-                      addTask(s.id, title);
-                    }}
+                    onClick={() => setNewTaskStone(s)}
                     className="mx-2.5 mb-3 mt-2 flex items-center justify-center gap-1 rounded-xl border border-dashed border-border-strong py-2 text-xs font-semibold text-dim transition hover:border-accent/40 hover:bg-accent/10 hover:text-text"
                   >
                     <Plus size={14} /> Nueva tarea
@@ -438,6 +438,28 @@ export default function KanbanView() {
       {editingStoneId && (
         <StoneEditModal stoneId={editingStoneId} onClose={() => setEditingStoneId(null)} />
       )}
+
+      <NewTaskModal
+        open={!!newTaskStone}
+        stoneTitle={newTaskStone?.title}
+        busy={creatingTask}
+        onClose={() => {
+          if (!creatingTask) setNewTaskStone(null);
+        }}
+        onSubmit={async ({ title, xp }) => {
+          if (!newTaskStone) return;
+          setCreatingTask(true);
+          try {
+            await addTask(newTaskStone.id, { title, xp });
+            notify.success("Tarea creada");
+            setNewTaskStone(null);
+          } catch (e) {
+            notify.error(e.message || "No se pudo crear la tarea");
+          } finally {
+            setCreatingTask(false);
+          }
+        }}
+      />
     </div>
   );
 }

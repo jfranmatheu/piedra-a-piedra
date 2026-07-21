@@ -1,4 +1,4 @@
-import { ArrowLeft, Settings, UserPlus } from "lucide-react";
+import { ArrowLeft, Loader2, Settings, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AppProvider, useApp } from "../context/AppContext";
@@ -9,6 +9,7 @@ import PanelView from "../components/PanelView";
 import ProjectSettingsModal from "../components/ProjectSettingsModal";
 import { useI18n } from "../i18n";
 import * as api from "../lib/api";
+import { notifyPromise } from "../lib/toast";
 
 function WorkspaceInner() {
   const { user } = useAuth();
@@ -27,6 +28,7 @@ function WorkspaceInner() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [username, setUsername] = useState("");
+  const [inviting, setInviting] = useState(false);
 
   const myMember = members?.find((m) => m.id === user?.id);
   const myRole =
@@ -111,13 +113,25 @@ function WorkspaceInner() {
             className="w-full max-w-sm rounded-2xl border border-border bg-elev p-5"
             onSubmit={async (e) => {
               e.preventDefault();
+              if (inviting) return;
+              const uname = username.trim().toLowerCase().replace(/^@/, "");
+              if (!uname) return;
+              setInviting(true);
               try {
-                await api.inviteToProject(projectId, username.trim().toLowerCase());
-                toast(`Invitación enviada a @${username}`, "xp");
+                await notifyPromise(
+                  api.inviteToProject(projectId, uname),
+                  {
+                    loading: "Enviando invitación…",
+                    success: `Invitación enviada a @${uname}`,
+                    error: (err) => err.message || "Error al invitar",
+                  }
+                );
                 setInviteOpen(false);
                 setUsername("");
-              } catch (err) {
-                toast(err.message, "stone");
+              } catch {
+                /* toast */
+              } finally {
+                setInviting(false);
               }
             }}
           >
@@ -128,24 +142,34 @@ function WorkspaceInner() {
             </p>
             <input
               required
+              disabled={inviting}
               placeholder="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="mb-3 w-full rounded-xl border border-border bg-black/40 px-3 py-2 text-sm outline-none"
+              className="mb-3 w-full rounded-xl border border-border bg-black/40 px-3 py-2 text-sm outline-none disabled:opacity-50"
             />
             <div className="flex justify-end gap-2">
               <button
                 type="button"
+                disabled={inviting}
                 onClick={() => setInviteOpen(false)}
-                className="rounded-xl px-3 py-2 text-sm text-dim"
+                className="rounded-xl px-3 py-2 text-sm text-dim disabled:opacity-50"
               >
                 {t("common.cancel")}
               </button>
               <button
                 type="submit"
-                className="rounded-xl bg-accent/20 px-3 py-2 text-sm font-semibold text-accent"
+                disabled={inviting || !username.trim()}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-accent/20 px-3 py-2 text-sm font-semibold text-accent disabled:opacity-50"
               >
-                {t("common.invite")}
+                {inviting ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Enviando…
+                  </>
+                ) : (
+                  t("common.invite")
+                )}
               </button>
             </div>
           </form>

@@ -18,6 +18,7 @@ import { ProgressBar } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../i18n";
 import * as api from "../lib/api";
+import { notify } from "../lib/toast";
 import { levelFromXp } from "../lib/utils";
 
 const ROLE_META = {
@@ -113,8 +114,8 @@ function ProjectCard({ project, t, onManage }) {
           <ProgressBar pct={st.pct} color={role.color} className="h-1.5" />
           <div className="mt-1.5 font-mono text-[10px] text-mute">
             {t("projects.stones", { n: st.stoneCount })}
-            {project.start_date
-              ? ` · ${t("projects.start")} ${project.start_date}`
+            {project.start_date || project.end_date
+              ? ` · ${project.start_date || "…"} → ${project.end_date || "…"}`
               : ""}
           </div>
         </div>
@@ -139,6 +140,7 @@ export default function ProjectsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [manageProject, setManageProject] = useState(null);
@@ -166,17 +168,26 @@ export default function ProjectsPage() {
 
   const create = async (e) => {
     e.preventDefault();
+    if (startDate && endDate && endDate < startDate) {
+      notify.error("La fecha fin no puede ser anterior al inicio");
+      return;
+    }
     try {
       const p = await api.createProject({
         name: name.trim(),
         start_date: startDate || null,
+        end_date: endDate || null,
       });
+      notify.success("Proyecto creado");
       setShowCreate(false);
       setName("");
+      setStartDate("");
+      setEndDate("");
       await load();
       window.location.href = `/p/${p.id}`;
     } catch (err) {
       setError(err.message);
+      notify.error(err.message);
     }
   };
 
@@ -363,15 +374,27 @@ export default function ProjectsPage() {
                   className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2.5 text-sm outline-none focus:border-accent/50"
                 />
               </label>
-              <label className="mb-4 block text-xs text-mute">
-                {t("common.startDate")}
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2.5 text-sm outline-none focus:border-accent/50"
-                />
-              </label>
+              <div className="mb-4 grid grid-cols-2 gap-2">
+                <label className="block text-xs text-mute">
+                  {t("common.startDate")}
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2.5 text-sm outline-none focus:border-accent/50"
+                  />
+                </label>
+                <label className="block text-xs text-mute">
+                  {t("common.endDate")}
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    min={startDate || undefined}
+                    className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2.5 text-sm outline-none focus:border-accent/50"
+                  />
+                </label>
+              </div>
               <div className="flex justify-end gap-2">
                 <button
                   type="button"

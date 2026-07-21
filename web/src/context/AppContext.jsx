@@ -456,10 +456,16 @@ export function AppProvider({ children }) {
   );
 
   const addTask = useCallback(
-    async (stoneId, title = "Nueva tarea") => {
-      if (!projectId) return;
+    async (stoneId, fields = {}) => {
+      if (!projectId) return null;
+      const title =
+        typeof fields === "string"
+          ? fields
+          : fields.title || "Nueva tarea";
+      const xp =
+        typeof fields === "object" && fields.xp != null ? fields.xp : 50;
       try {
-        const row = await api.createTaskDb(projectId, stoneId, { title });
+        const row = await api.createTaskDb(projectId, stoneId, { title, xp });
         setModel((prev) => {
           if (!prev) return prev;
           const stones = structuredClone(prev.stones);
@@ -480,8 +486,10 @@ export function AppProvider({ children }) {
           return { ...prev, stones };
         });
         toast("＋ Tarea creada", "xp");
+        return row;
       } catch (e) {
         toast(`Error: ${e.message}`, "stone");
+        throw e;
       }
     },
     [projectId, toast]

@@ -30,6 +30,7 @@
     "name": "Name",
     "description": "Description",
     "startDate": "Start date",
+    "endDate": "End / deadline",
     "saving": "Saving…",
     "sending": "Sending…",
     "membersAccess": "Member access"

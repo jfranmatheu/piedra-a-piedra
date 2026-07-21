@@ -223,7 +223,7 @@ export async function listMyProjects() {
       `
       role,
       project:projects (
-        id, name, description, start_date, owner_id, created_at, updated_at
+        id, name, description, start_date, end_date, owner_id, created_at, updated_at
       )
     `
     )
@@ -299,7 +299,7 @@ export async function listMyProjects() {
   });
 }
 
-export async function createProject({ name, description, start_date }) {
+export async function createProject({ name, description, start_date, end_date }) {
   const user = await requireUser();
 
   // Fail early with a clear message if profile row is missing (FK owner_id → profiles)
@@ -321,6 +321,7 @@ export async function createProject({ name, description, start_date }) {
       name,
       description: description || "",
       start_date: start_date || null,
+      end_date: end_date || null,
       owner_id: user.id,
     })
     .select()
@@ -345,6 +346,9 @@ export async function updateProject(projectId, fields) {
   if (fields.description != null) patch.description = String(fields.description);
   if (fields.start_date !== undefined) {
     patch.start_date = fields.start_date || null;
+  }
+  if (fields.end_date !== undefined) {
+    patch.end_date = fields.end_date || null;
   }
   if (!Object.keys(patch).length) return getProject(projectId);
 
@@ -658,6 +662,7 @@ export async function loadProjectBoard(projectId) {
     stones,
     meta: {
       start: project.start_date || "",
+      end: project.end_date || "",
     },
     title: project.name,
     subtitle: project.description || "",

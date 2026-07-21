@@ -1,8 +1,9 @@
-import { ListOrdered, Mail, Shield, X } from "lucide-react";
+import { ListOrdered, Loader2, Mail, Shield, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../i18n";
 import * as api from "../lib/api";
+import { notify, notifyPromise } from "../lib/toast";
 
 /**
  * Modal de invitaciones a la plataforma (header).
@@ -48,20 +49,31 @@ export default function PlatformInviteModal({ onClose }) {
 
   const invitePlatform = async (e) => {
     e.preventDefault();
+    if (busy) return;
     setInviteMsg(null);
     setBusy(true);
+    const email = inviteEmail.trim();
     try {
       const opts = isPlatformAdmin
         ? { grantQuota: Number(inviteGrantQuota) || 0 }
         : {};
-      const res = await api.invitePlatformUser(
-        inviteEmail,
-        session.access_token,
-        opts
+      const res = await notifyPromise(
+        api.invitePlatformUser(email, session.access_token, opts),
+        {
+          loading: "Enviando invitación…",
+          success: (r) =>
+            t("platformInvite.sent", {
+              email,
+              grant: r.grantQuota ?? inviteGrantQuota,
+            }),
+          error: (err) => err.message || "Error al invitar",
+        }
       );
-      const grant = res.grantQuota ?? inviteGrantQuota;
       setInviteMsg(
-        t("platformInvite.sent", { email: inviteEmail, grant }) +
+        t("platformInvite.sent", {
+          email,
+          grant: res.grantQuota ?? inviteGrantQuota,
+        }) +
           (res.unlimited
             ? ""
             : res.invitesRemaining != null
@@ -70,8 +82,8 @@ export default function PlatformInviteModal({ onClose }) {
       );
       setInviteEmail("");
       await refreshProfile();
-    } catch (err) {
-      setInviteMsg(err.message);
+    } catch {
+      /* toast shown */
     } finally {
       setBusy(false);
     }
@@ -79,21 +91,34 @@ export default function PlatformInviteModal({ onClose }) {
 
   const assignQuota = async (e) => {
     e.preventDefault();
+    if (busy) return;
     setQuotaMsg(null);
     const raw = quotaTarget.trim();
     if (!raw) {
       setQuotaMsg(t("platformInvite.indicateEmailUser"));
+      notify.error(t("platformInvite.indicateEmailUser"));
       return;
     }
     const isEmail = raw.includes("@") && !raw.startsWith("@");
     setBusy(true);
     try {
-      const res = await api.setPlatformInviteQuota(
+      const res = await notifyPromise(
+        api.setPlatformInviteQuota(
+          {
+            quota: Number(quotaValue) || 0,
+            ...(isEmail ? { email: raw } : { username: raw.replace(/^@/, "") }),
+          },
+          session.access_token
+        ),
         {
-          quota: Number(quotaValue) || 0,
-          ...(isEmail ? { email: raw } : { username: raw.replace(/^@/, "") }),
-        },
-        session.access_token
+          loading: "Asignando cupo…",
+          success: (r) =>
+            t("platformInvite.quotaSet", {
+              user: r.user?.username || raw,
+              n: r.user?.platform_invites_remaining,
+            }),
+          error: (err) => err.message || "Error",
+        }
       );
       setQuotaMsg(
         t("platformInvite.quotaSet", {
@@ -105,8 +130,8 @@ export default function PlatformInviteModal({ onClose }) {
             : "")
       );
       setQuotaTarget("");
-    } catch (err) {
-      setQuotaMsg(err.message);
+    } catch {
+      /* toast */
     } finally {
       setBusy(false);
     }
@@ -114,15 +139,27 @@ export default function PlatformInviteModal({ onClose }) {
 
   const runBatch = async (e) => {
     e.preventDefault();
+    if (busy) return;
     setBatchMsg(null);
     setBusy(true);
     try {
-      const res = await api.batchInviteWaitlist(
+      const res = await notifyPromise(
+        api.batchInviteWaitlist(
+          {
+            count: Number(batchCount) || 1,
+            grantQuota: Number(batchQuota) || 0,
+          },
+          session.access_token
+        ),
         {
-          count: Number(batchCount) || 1,
-          grantQuota: Number(batchQuota) || 0,
-        },
-        session.access_token
+          loading: "Enviando invitaciones…",
+          success: (r) =>
+            t("platformInvite.batchResult", {
+              ok: r.invited,
+              req: r.requested,
+            }),
+          error: (err) => err.message || "Error en batch",
+        }
       );
       const fails = (res.results || []).filter((r) => !r.ok);
       setBatchMsg(
@@ -137,8 +174,8 @@ export default function PlatformInviteModal({ onClose }) {
             : "")
       );
       await loadWaitlist();
-    } catch (err) {
-      setBatchMsg(err.message);
+    } catch {
+      /* toast */
     } finally {
       setBusy(false);
     }
@@ -218,9 +255,10 @@ export default function PlatformInviteModal({ onClose }) {
                 <input
                   type="email"
                   required
+                  disabled={busy}
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2.5 text-sm outline-none focus:border-accent/50"
+                  className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2.5 text-sm outline-none focus:border-accent/50 disabled:opacity-50"
                   placeholder="name@email.com"
                 />
               </label>
@@ -231,9 +269,10 @@ export default function PlatformInviteModal({ onClose }) {
                     type="number"
                     min={0}
                     max={1000}
+                    disabled={busy}
                     value={inviteGrantQuota}
                     onChange={(e) => setInviteGrantQuota(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2.5 text-sm outline-none"
+                    className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2.5 text-sm outline-none disabled:opacity-50"
                   />
                 </label>
               )}
@@ -244,10 +283,19 @@ export default function PlatformInviteModal({ onClose }) {
               )}
               <button
                 type="submit"
-                disabled={busy}
+                disabled={busy || !inviteEmail.trim()}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-accent/40 bg-accent/20 py-2.5 text-sm font-bold disabled:opacity-50"
               >
-                <Mail size={14} /> {t("platformInvite.sendInvite")}
+                {busy ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Enviando invitación…
+                  </>
+                ) : (
+                  <>
+                    <Mail size={14} /> {t("platformInvite.sendInvite")}
+                  </>
+                )}
               </button>
             </form>
           )}
@@ -259,9 +307,10 @@ export default function PlatformInviteModal({ onClose }) {
                 {t("platformInvite.emailOrUser")}
                 <input
                   required
+                  disabled={busy}
                   value={quotaTarget}
                   onChange={(e) => setQuotaTarget(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2.5 text-sm outline-none"
+                  className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2.5 text-sm outline-none disabled:opacity-50"
                   placeholder="user@mail.com or @user"
                 />
               </label>
@@ -271,9 +320,10 @@ export default function PlatformInviteModal({ onClose }) {
                   type="number"
                   min={0}
                   max={1000}
+                  disabled={busy}
                   value={quotaValue}
                   onChange={(e) => setQuotaValue(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2.5 text-sm outline-none"
+                  className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2.5 text-sm outline-none disabled:opacity-50"
                 />
               </label>
               {quotaMsg && (
@@ -286,7 +336,16 @@ export default function PlatformInviteModal({ onClose }) {
                 disabled={busy}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-accent/40 bg-accent/20 py-2.5 text-sm font-bold disabled:opacity-50"
               >
-                <Shield size={14} /> {t("platformInvite.assignQuota")}
+                {busy ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    …
+                  </>
+                ) : (
+                  <>
+                    <Shield size={14} /> {t("platformInvite.assignQuota")}
+                  </>
+                )}
               </button>
             </form>
           )}

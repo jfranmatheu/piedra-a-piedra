@@ -30,6 +30,7 @@
     "name": "Nombre",
     "description": "Descripción",
     "startDate": "Fecha de inicio",
+    "endDate": "Fecha fin / límite",
     "saving": "Guardando…",
     "sending": "Enviando…",
     "membersAccess": "Acceso miembros"

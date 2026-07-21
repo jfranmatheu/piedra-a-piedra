@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   Crown,
+  Loader2,
   LogOut,
   Trash2,
   UserMinus,
@@ -10,7 +11,9 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useConfirm } from "../hooks/useConfirm";
 import * as api from "../lib/api";
+import { notify, notifyPromise } from "../lib/toast";
 import { sanitizeUsernameInput } from "../lib/username";
 
 const ROLE_LABEL = {
@@ -22,7 +25,7 @@ const ROLE_LABEL = {
 /**
  * @param {{
  *   projectId: string,
- *   project?: { id: string, name: string, description?: string, start_date?: string, owner_id?: string } | null,
+ *   project?: { id: string, name: string, description?: string, start_date?: string, end_date?: string, owner_id?: string } | null,
  *   myRole?: string | null,
  *   onClose: () => void,
  *   onChanged?: () => void,
@@ -37,6 +40,7 @@ export default function ProjectSettingsModal({
 }) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { confirm, ConfirmHost } = useConfirm();
 
   const [project, setProject] = useState(projectProp || null);
   const [members, setMembers] = useState([]);
@@ -45,11 +49,13 @@ export default function ProjectSettingsModal({
   const [error, setError] = useState(null);
   const [msg, setMsg] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [inviting, setInviting] = useState(false);
 
   // General
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   // Invite
   const [inviteUser, setInviteUser] = useState("");
@@ -87,6 +93,7 @@ export default function ProjectSettingsModal({
       setName(p.name || "");
       setDescription(p.description || "");
       setStartDate(p.start_date || "");
+      setEndDate(p.end_date || "");
       const mine = m.find((x) => x.id === user?.id);
       setMyRole(mine?.role || (p.owner_id === user?.id ? "owner" : myRoleProp) || null);
     } catch (e) {
@@ -104,9 +111,11 @@ export default function ProjectSettingsModal({
     if (isErr) {
       setError(text);
       setMsg(null);
+      notify.error(text);
     } else {
       setMsg(text);
       setError(null);
+      notify.success(text);
     }
   };
 
@@ -124,12 +133,17 @@ export default function ProjectSettingsModal({
       flash("El nombre no puede estar vacío", true);
       return;
     }
+    if (startDate && endDate && endDate < startDate) {
+      flash("La fecha fin no puede ser anterior al inicio", true);
+      return;
+    }
     setBusy(true);
     try {
       await api.updateProject(projectId, {
         name: n,
         description,
         start_date: startDate || null,
+        end_date: endDate || null,
       });
       await afterMutation("Proyecto actualizado");
     } catch (err) {
@@ -141,16 +155,27 @@ export default function ProjectSettingsModal({
 
   const sendInvite = async (e) => {
     e.preventDefault();
-    if (!canManage) return;
-    setBusy(true);
+    if (!canManage || inviting) return;
+    const uname = inviteUser.trim();
+    if (!uname) return;
+    setInviting(true);
+    setError(null);
     try {
-      await api.inviteToProject(projectId, inviteUser, inviteRole);
+      await notifyPromise(
+        api.inviteToProject(projectId, uname, inviteRole),
+        {
+          loading: "Enviando invitación…",
+          success: `Invitación enviada a @${uname.replace(/^@/, "")}`,
+          error: (err) => err.message || "No se pudo invitar",
+        }
+      );
       setInviteUser("");
-      await afterMutation(`Invitación enviada a @${inviteUser.replace(/^@/, "")}`);
-    } catch (err) {
-      flash(err.message, true);
+      await reload();
+      onChanged?.();
+    } catch {
+      /* toast already shown */
     } finally {
-      setBusy(false);
+      setInviting(false);
     }
   };
 
@@ -169,7 +194,13 @@ export default function ProjectSettingsModal({
 
   const kick = async (memberId, username) => {
     if (!canManage) return;
-    if (!window.confirm(`¿Expulsar a @${username} del proyecto?`)) return;
+    const ok = await confirm({
+      title: "Expulsar miembro",
+      message: `¿Expulsar a @${username} del proyecto? Se quitarán sus asignaciones en las tareas.`,
+      confirmLabel: "Expulsar",
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await api.removeProjectMember(projectId, memberId);
@@ -184,13 +215,13 @@ export default function ProjectSettingsModal({
   const doTransfer = async () => {
     if (!isOwner || !transferTo) return;
     const target = members.find((m) => m.id === transferTo);
-    if (
-      !window.confirm(
-        `¿Transferir la propiedad a @${target?.username}? Pasarás a ser admin del proyecto.`
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Transferir propiedad",
+      message: `¿Transferir la propiedad a @${target?.username}? Pasarás a ser admin del proyecto.`,
+      confirmLabel: "Transferir",
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await api.transferProjectOwnership(projectId, transferTo);
@@ -204,30 +235,36 @@ export default function ProjectSettingsModal({
   };
 
   const doLeave = async () => {
+    if (isOwner) {
+      if (!leaveTransferTo) {
+        flash("Como owner debes elegir a quién transferir la propiedad", true);
+        return;
+      }
+      const ok = await confirm({
+        title: "Transferir y salir",
+        message:
+          "Vas a transferir la propiedad y salir del proyecto. ¿Continuar?",
+        confirmLabel: "Transferir y salir",
+        danger: true,
+      });
+      if (!ok) return;
+    } else {
+      const ok = await confirm({
+        title: "Salir del proyecto",
+        message: "¿Salir de este proyecto? Dejarás de verlo y sus tareas.",
+        confirmLabel: "Salir",
+        danger: true,
+      });
+      if (!ok) return;
+    }
     setBusy(true);
     try {
       if (isOwner) {
-        if (!leaveTransferTo) {
-          flash("Como owner debes elegir a quién transferir la propiedad", true);
-          setBusy(false);
-          return;
-        }
-        if (
-          !window.confirm(
-            "Vas a transferir la propiedad y salir del proyecto. ¿Continuar?"
-          )
-        ) {
-          setBusy(false);
-          return;
-        }
         await api.leaveProject(projectId, leaveTransferTo);
       } else {
-        if (!window.confirm("¿Salir de este proyecto?")) {
-          setBusy(false);
-          return;
-        }
         await api.leaveProject(projectId, null);
       }
+      notify.success("Has salido del proyecto");
       onChanged?.();
       onClose();
       navigate("/projects", { replace: true });
@@ -244,9 +281,18 @@ export default function ProjectSettingsModal({
       flash("Escribe el nombre exacto del proyecto para confirmar", true);
       return;
     }
+    const ok = await confirm({
+      title: "Borrar proyecto",
+      message:
+        "Esta acción es irreversible. Se eliminarán piedras, tareas e invitaciones.",
+      confirmLabel: "Borrar definitivamente",
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await api.deleteProject(projectId);
+      notify.success("Proyecto eliminado");
       onChanged?.();
       onClose();
       navigate("/projects", { replace: true });
@@ -342,15 +388,27 @@ export default function ProjectSettingsModal({
                         className="mt-1 w-full resize-y rounded-xl border border-border bg-black/40 px-3 py-2 text-sm outline-none focus:border-accent/50"
                       />
                     </label>
-                    <label className="block text-xs text-mute">
-                      Fecha de inicio
-                      <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2 text-sm outline-none focus:border-accent/50"
-                      />
-                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="block text-xs text-mute">
+                        Fecha de inicio
+                        <input
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2 text-sm outline-none focus:border-accent/50"
+                        />
+                      </label>
+                      <label className="block text-xs text-mute">
+                        Fecha fin / límite
+                        <input
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          min={startDate || undefined}
+                          className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2 text-sm outline-none focus:border-accent/50"
+                        />
+                      </label>
+                    </div>
                     <button
                       type="submit"
                       disabled={busy}
@@ -364,6 +422,13 @@ export default function ProjectSettingsModal({
                     <div className="font-semibold text-text">{project?.name}</div>
                     {project?.description && (
                       <p className="mt-1 text-xs">{project.description}</p>
+                    )}
+                    {(project?.start_date || project?.end_date) && (
+                      <p className="mt-2 font-mono text-[11px] text-mute">
+                        {project.start_date || "—"}
+                        {" → "}
+                        {project.end_date || "—"}
+                      </p>
                     )}
                     <p className="mt-2 text-[11px] text-mute">
                       Solo owner o admin pueden renombrar el proyecto.
@@ -452,27 +517,36 @@ export default function ProjectSettingsModal({
                         </span>
                         <input
                           value={inviteUser}
+                          disabled={inviting}
                           onChange={(e) =>
                             setInviteUser(sanitizeUsernameInput(e.target.value))
                           }
                           placeholder="username"
-                          className="w-full rounded-xl border border-border bg-black/40 py-2 pl-7 pr-2 font-mono text-sm outline-none"
+                          className="w-full rounded-xl border border-border bg-black/40 py-2 pl-7 pr-2 font-mono text-sm outline-none disabled:opacity-50"
                         />
                       </div>
                       <select
                         value={inviteRole}
+                        disabled={inviting}
                         onChange={(e) => setInviteRole(e.target.value)}
-                        className="rounded-xl border border-border bg-black/40 px-2 py-2 text-xs outline-none"
+                        className="rounded-xl border border-border bg-black/40 px-2 py-2 text-xs outline-none disabled:opacity-50"
                       >
                         <option value="member">Miembro</option>
                         {isOwner && <option value="admin">Admin</option>}
                       </select>
                       <button
                         type="submit"
-                        disabled={busy || !inviteUser}
-                        className="rounded-xl border border-accent/40 bg-accent/20 px-3 py-2 text-xs font-semibold disabled:opacity-50"
+                        disabled={inviting || !inviteUser.trim()}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/20 px-3 py-2 text-xs font-semibold disabled:opacity-50"
                       >
-                        Invitar
+                        {inviting ? (
+                          <>
+                            <Loader2 size={12} className="animate-spin" />
+                            Enviando…
+                          </>
+                        ) : (
+                          "Invitar"
+                        )}
                       </button>
                     </div>
                   </form>
@@ -646,6 +720,7 @@ export default function ProjectSettingsModal({
           )}
         </div>
       </div>
+      <ConfirmHost />
     </div>
   );
 }
