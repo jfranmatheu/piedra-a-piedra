@@ -67,7 +67,7 @@ where lower(email) = lower('TU_ADMIN@email.com');
 2. `APP_URL` = URL real de la app (`https://piedra-a-piedra.vercel.app`, sin barra final).
 3. Supabase → **Authentication → URL Configuration**:
    - Site URL = tu `APP_URL`
-   - Redirect URLs incluye `https://tu-app.vercel.app/**` o al menos `…/login`
+   - Redirect URLs incluye `https://tu-app.vercel.app/**` y en particular `…/join` (alta por invitación)
 4. Tu usuario debe tener `is_platform_admin = true` en `profiles` (script `004_setup_admin.sql`).
 5. Redeploy con el código nuevo (raíz con `package.json` + `@supabase/supabase-js`).
 6. Logs: Vercel → Deployments → función → **Logs** / Runtime Logs; el body JSON del 500 ahora incluye el motivo.
@@ -89,7 +89,7 @@ where lower(email) = lower('TU_ADMIN@email.com');
 
 1. Admin inicia sesión.
 2. **Invitar a la plataforma** (email) → el usuario recibe el mail de Supabase y define contraseña.
-3. En el **primer acceso**, el invitado elige su **@username** (pantalla de onboarding) y entiende que el email no se comparte.
+3. El invitado abre el enlace del email → `/join`: elige **@username** + **contraseña** (o rechaza y se borra de Auth). Luego entra al dashboard.
 4. Cualquier usuario **crea proyectos**.
 5. Owner/admin del proyecto **invita por @username** (el email sigue privado).
 6. El invitado ve la notificación y acepta → entra al proyecto.

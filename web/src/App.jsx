@@ -1,8 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { supabaseConfig } from "./lib/supabase";
+import JoinPage from "./pages/JoinPage";
 import LoginPage from "./pages/LoginPage";
-import OnboardingPage from "./pages/OnboardingPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectWorkspace from "./pages/ProjectWorkspace";
 
@@ -16,7 +16,8 @@ function RequireAuth({ children }) {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
-  if (needsUsernameSetup) return <Navigate to="/onboarding" replace />;
+  // Alta incompleta (invitación): username + contraseña en /join
+  if (needsUsernameSetup) return <Navigate to="/join" replace />;
   return children;
 }
 
@@ -72,7 +73,9 @@ export default function App() {
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/onboarding" element={<OnboardingPage />} />
+            <Route path="/join" element={<JoinPage />} />
+            {/* Compat: antigua ruta de onboarding */}
+            <Route path="/onboarding" element={<Navigate to="/join" replace />} />
             <Route
               path="/"
               element={

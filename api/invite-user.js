@@ -163,8 +163,9 @@ export default async function handler(req, res) {
       }
     }
 
+    // El invitado aterriza en /join para elegir username + contraseña (o rechazar)
     const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${appUrl}/login`,
+      redirectTo: `${appUrl}/join`,
     });
 
     if (error) {

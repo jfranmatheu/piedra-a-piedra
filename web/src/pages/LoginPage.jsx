@@ -11,7 +11,7 @@ export default function LoginPage() {
 
   if (!loading && user) {
     return (
-      <Navigate to={needsUsernameSetup ? "/onboarding" : "/"} replace />
+      <Navigate to={needsUsernameSetup ? "/join" : "/"} replace />
     );
   }
 
@@ -75,7 +75,8 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-6 text-center text-[11px] text-mute">
-          No hay registro público. Pide una invitación al administrador.
+          No hay registro público. Si te invitaron, usa el enlace del email para
+          crear username y contraseña.
         </p>
       </div>
     </div>

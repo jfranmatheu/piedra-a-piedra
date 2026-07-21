@@ -75,6 +75,79 @@ export async function signOut() {
   if (error) throw error;
 }
 
+const PASSWORD_MIN = 8;
+
+export function validatePassword(password, confirm) {
+  if (!password || password.length < PASSWORD_MIN) {
+    return `La contraseña debe tener al menos ${PASSWORD_MIN} caracteres`;
+  }
+  if (confirm != null && password !== confirm) {
+    return "Las contraseñas no coinciden";
+  }
+  return null;
+}
+
+/**
+ * Completa el alta tras invitación: contraseña + username público.
+ * Tras esto la cuenta queda usable (dashboard).
+ */
+export async function completeInviteSignup({
+  username,
+  password,
+  passwordConfirm,
+  displayName,
+}) {
+  const user = await requireUser();
+  const pwErr = validatePassword(password, passwordConfirm);
+  if (pwErr) throw new Error(pwErr);
+
+  const { error: authErr } = await supabase.auth.updateUser({ password });
+  if (authErr) {
+    throw new Error(
+      authErr.message || "No se pudo establecer la contraseña"
+    );
+  }
+
+  const profile = await setUsername(user.id, username, {
+    displayName: displayName?.trim() || username,
+  });
+
+  // Asegurar invite de plataforma como accepted (por si el trigger no lo hizo)
+  if (user.email) {
+    await supabase
+      .from("platform_invites")
+      .update({ status: "accepted" })
+      .eq("status", "pending")
+      .ilike("email", user.email);
+  }
+
+  return profile;
+}
+
+/**
+ * Rechaza la invitación: borra el usuario de Auth + rastro en platform_invites.
+ * Solo válido si aún no completó el alta.
+ */
+export async function declinePlatformInvite(accessToken) {
+  const res = await fetch("/api/decline-invite", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: "{}",
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+  // Limpiar sesión local (el usuario ya no existe en Auth)
+  try {
+    await supabase.auth.signOut({ scope: "local" });
+  } catch {
+    /* ignore */
+  }
+  return json;
+}
+
 export async function getProfile(userId) {
   const { data, error } = await supabase
     .from("profiles")

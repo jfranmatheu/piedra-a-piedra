@@ -290,9 +290,10 @@ export default function ProjectsPage() {
             </form>
             {inviteMsg && <p className="mt-2 text-sm text-dim">{inviteMsg}</p>}
             <p className="mt-2 text-[11px] text-mute">
-              Requiere función serverless <code>/api/invite-user</code> y{" "}
-              <code>SUPABASE_SECRET_KEY</code> (<code>sb_secret_…</code>, solo
-              servidor).
+              El invitado llega a <code>/join</code>, elige @username y contraseña
+              (o rechaza y se borra de Auth). Requiere{" "}
+              <code>/api/invite-user</code>, <code>/api/decline-invite</code> y{" "}
+              <code>SUPABASE_SECRET_KEY</code>.
             </p>
           </section>
         )}
