@@ -26,27 +26,46 @@ set is_platform_admin = true
 where lower(email) = lower('TU_ADMIN@email.com');
 ```
 
-6. Copia de **Project Settings → API**:
+6. Copia de **Project Settings → [API Keys](https://supabase.com/dashboard/project/_/settings/api-keys/)**  
+   (claves nuevas, no las JWT legacy):
    - Project URL → `VITE_SUPABASE_URL`
-   - `anon` `public` → `VITE_SUPABASE_ANON_KEY`
-   - `service_role` → `SUPABASE_SERVICE_ROLE_KEY` (**solo server**, nunca en el cliente)
+   - **Publishable key** (`sb_publishable_…`) → `VITE_SUPABASE_PUBLISHABLE_KEY` (cliente)
+   - **Secret key** (`sb_secret_…`) → `SUPABASE_SECRET_KEY` (**solo server**, nunca `VITE_*`)
+
+   Docs: https://supabase.com/docs/guides/getting-started/api-keys
 
 ## 3. Deploy en Vercel
 
 1. Importa el repo en Vercel.
-2. Framework: Vite / Other.  
-   - Build: `cd web && npm install && npm run build`  
-   - Output: `dist` (o usa `vercel.json` del repo)
-3. Environment variables:
+2. **Root Directory:** vacío (raíz del repo), no `web`.
+3. Framework: **Vite** u **Other**.
+4. Comandos (también en `vercel.json`):
+   - Install: `cd web && npm install`
+   - Build: `cd web && npm run build`
+   - Output: `dist`
+5. **Environment Variables** (Settings → Environment Variables).  
+   Marca **Production** (y Preview si quieres).  
+   Los nombres deben llevar el prefijo `VITE_` para el cliente:
 
 | Name | Value |
 |------|--------|
 | `VITE_SUPABASE_URL` | `https://xxx.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | service role |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_…` |
+| `SUPABASE_SECRET_KEY` | `sb_secret_…` (solo server; **sin** `VITE_`) |
 | `APP_URL` | `https://tu-app.vercel.app` |
 
-4. La función `web/api/invite-user.js` invita usuarios por email (solo platform admin).
+6. **Redeploy obligatorio** después de crear/cambiar env vars:  
+   Deployments → ⋮ en el último deploy → **Redeploy**  
+   (Vite embebe `VITE_*` en el build; si no redespliegas, el JS sigue vacío.)
+
+7. La función `api/invite-user.js` invita usuarios por email (solo platform admin).
+
+### Si ves “Faltan VITE_SUPABASE_…”
+
+1. Comprueba que las variables existen en **Production** (no solo Development).
+2. Nombres exactos: `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY`.
+3. Redeploy con el código más reciente del repo.
+4. Hard refresh del navegador (Ctrl+F5).
 
 ## 4. Deploy en Netlify
 
@@ -77,6 +96,9 @@ Para probar `/api/invite-user` en local, usa `vercel dev` desde la raíz o un pr
 
 ## Seguridad
 
-- Nunca expongas `service_role` en variables `VITE_*`.
+- Usa **publishable** en el cliente y **secret** solo en el servidor (función invite).
+- Nunca expongas `SUPABASE_SECRET_KEY` / `service_role` con prefijo `VITE_*`.
 - Sign-up público desactivado.
 - RLS: solo miembros del proyecto ven/editan sus piedras y tareas.
+
+Las claves JWT legacy (`anon` / `service_role`) siguen funcionando en paralelo hasta que las desactives en el dashboard; el código acepta fallback legacy si hace falta.

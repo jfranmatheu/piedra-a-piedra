@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { supabaseConfig } from "./lib/supabase";
 import LoginPage from "./pages/LoginPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectWorkspace from "./pages/ProjectWorkspace";
@@ -16,20 +17,44 @@ function RequireAuth({ children }) {
 }
 
 function RequireConfig({ children }) {
-  const ok =
-    import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
-  if (!ok) {
+  if (!supabaseConfig.isConfigured) {
     return (
-      <div className="mx-auto mt-20 max-w-lg rounded-2xl border border-amber-500/30 bg-amber-500/10 p-8 text-center">
-        <h1 className="mb-2 text-xl font-bold text-amber-200">Configura Supabase</h1>
-        <p className="text-sm text-dim">
-          Define <code className="text-text">VITE_SUPABASE_URL</code> y{" "}
-          <code className="text-text">VITE_SUPABASE_ANON_KEY</code> en{" "}
-          <code className="text-text">web/.env.local</code> o en Vercel/Netlify.
+      <div className="mx-auto mt-20 max-w-lg rounded-2xl border border-amber-500/30 bg-amber-500/10 p-8 text-left">
+        <h1 className="mb-2 text-center text-xl font-bold text-amber-200">
+          Supabase no configurado en este build
+        </h1>
+        <p className="mb-4 text-sm text-dim">
+          Vite embebe las variables <code className="text-text">VITE_*</code> en el{" "}
+          <strong>build</strong>. Hay que definirlas en Vercel y{" "}
+          <strong>volver a desplegar</strong> (Redeploy).
         </p>
-        <p className="mt-3 text-xs text-mute">
-          Ver <code>DEPLOY.md</code> y <code>scripts/README.md</code>.
-        </p>
+        <ul className="mb-4 list-inside list-disc space-y-1 text-sm text-dim">
+          <li>
+            URL:{" "}
+            <code className="text-text">
+              {supabaseConfig.hasUrl ? "OK" : "FALTA VITE_SUPABASE_URL"}
+            </code>
+          </li>
+          <li>
+            Publishable key:{" "}
+            <code className="text-text">
+              {supabaseConfig.hasPublishableKey
+                ? `OK (${supabaseConfig.keySource})`
+                : "FALTA VITE_SUPABASE_PUBLISHABLE_KEY"}
+            </code>
+          </li>
+        </ul>
+        <div className="rounded-xl border border-border bg-black/30 p-3 font-mono text-[11px] text-mute">
+          Vercel → Settings → Environment Variables
+          <br />
+          VITE_SUPABASE_URL=https://xxx.supabase.co
+          <br />
+          VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_…
+          <br />
+          Environments: Production (y Preview si aplica)
+          <br />
+          Luego: Deployments → ⋮ → Redeploy
+        </div>
       </div>
     );
   }

@@ -1,14 +1,19 @@
 /**
  * Vercel Serverless Function — invita un usuario a la plataforma (solo platform admin).
  *
- * Env:
+ * Env (nuevas API keys de Supabase):
  *   VITE_SUPABASE_URL o SUPABASE_URL
- *   SUPABASE_SERVICE_ROLE_KEY
- *   VITE_SUPABASE_ANON_KEY (para validar el JWT del caller)
- *   APP_URL (redirect invite)
+ *   VITE_SUPABASE_PUBLISHABLE_KEY  (sb_publishable_...) — validar JWT del caller
+ *   SUPABASE_SECRET_KEY            (sb_secret_...) — admin API (solo server)
+ *   APP_URL
+ *
+ * Fallbacks legacy (opcional durante migración):
+ *   VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
  *
  * POST { email: string }
  * Authorization: Bearer <user_access_token>
+ *
+ * @see https://supabase.com/docs/guides/getting-started/api-keys
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -26,19 +31,29 @@ export default async function handler(req, res) {
   }
 
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+  // Secret key (new) or legacy service_role JWT
+  const secretKey =
+    process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // Publishable key (new) or legacy anon JWT — only to validate the caller's user JWT
+  const publishableKey =
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY;
   const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || "http://localhost:5173";
 
-  if (!url || !serviceKey || !anonKey) {
-    return res.status(500).json({ error: "Missing Supabase env vars" });
+  if (!url || !secretKey || !publishableKey) {
+    return res.status(500).json({
+      error:
+        "Missing Supabase env vars (need URL + publishable/anon + secret/service_role)",
+    });
   }
 
   const authHeader = req.headers.authorization || "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
 
-  const userClient = createClient(url, anonKey, {
+  const userClient = createClient(url, publishableKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
   const {
@@ -47,7 +62,7 @@ export default async function handler(req, res) {
   } = await userClient.auth.getUser();
   if (userErr || !user) return res.status(401).json({ error: "Invalid session" });
 
-  const admin = createClient(url, serviceKey);
+  const admin = createClient(url, secretKey);
 
   const { data: profile } = await admin
     .from("profiles")
@@ -64,7 +79,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Email inválido" });
   }
 
-  // registrar invite
   await admin.from("platform_invites").insert({
     email,
     invited_by: profile.id,

@@ -254,7 +254,8 @@ export default function ProjectsPage() {
             {inviteMsg && <p className="mt-2 text-sm text-dim">{inviteMsg}</p>}
             <p className="mt-2 text-[11px] text-mute">
               Requiere función serverless <code>/api/invite-user</code> y{" "}
-              <code>SUPABASE_SERVICE_ROLE_KEY</code>.
+              <code>SUPABASE_SECRET_KEY</code> (<code>sb_secret_…</code>, solo
+              servidor).
             </p>
           </section>
         )}

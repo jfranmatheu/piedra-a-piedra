@@ -45,3 +45,11 @@ En Supabase → **Authentication → Providers → Email**:
 ## Variables de entorno
 
 Ver `.env.example` en la raíz y en `web/`.
+
+| Variable | Tipo de key | Dónde |
+|----------|-------------|--------|
+| `VITE_SUPABASE_URL` | Project URL | Cliente |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_…` | Cliente |
+| `SUPABASE_SECRET_KEY` | `sb_secret_…` | Solo server (`/api/invite-user`) |
+
+Docs: https://supabase.com/docs/guides/getting-started/api-keys
