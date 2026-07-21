@@ -230,7 +230,7 @@ export default function ProjectSettingsModal({
       }
       onChanged?.();
       onClose();
-      navigate("/", { replace: true });
+      navigate("/projects", { replace: true });
     } catch (err) {
       flash(err.message, true);
     } finally {
@@ -249,7 +249,7 @@ export default function ProjectSettingsModal({
       await api.deleteProject(projectId);
       onChanged?.();
       onClose();
-      navigate("/", { replace: true });
+      navigate("/projects", { replace: true });
     } catch (err) {
       flash(err.message, true);
     } finally {

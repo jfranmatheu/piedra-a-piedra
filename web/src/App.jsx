@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { supabaseConfig } from "./lib/supabase";
 import JoinPage from "./pages/JoinPage";
+import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectWorkspace from "./pages/ProjectWorkspace";
@@ -16,7 +17,6 @@ function RequireAuth({ children }) {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
-  // Alta incompleta (invitación): username + contraseña en /join
   if (needsUsernameSetup) return <Navigate to="/join" replace />;
   return children;
 }
@@ -29,37 +29,8 @@ function RequireConfig({ children }) {
           Supabase no configurado en este build
         </h1>
         <p className="mb-4 text-sm text-dim">
-          Vite embebe las variables <code className="text-text">VITE_*</code> en el{" "}
-          <strong>build</strong>. Hay que definirlas en Vercel y{" "}
-          <strong>volver a desplegar</strong> (Redeploy).
+          Define <code className="text-text">VITE_*</code> en Vercel y haz Redeploy.
         </p>
-        <ul className="mb-4 list-inside list-disc space-y-1 text-sm text-dim">
-          <li>
-            URL:{" "}
-            <code className="text-text">
-              {supabaseConfig.hasUrl ? "OK" : "FALTA VITE_SUPABASE_URL"}
-            </code>
-          </li>
-          <li>
-            Publishable key:{" "}
-            <code className="text-text">
-              {supabaseConfig.hasPublishableKey
-                ? `OK (${supabaseConfig.keySource})`
-                : "FALTA VITE_SUPABASE_PUBLISHABLE_KEY"}
-            </code>
-          </li>
-        </ul>
-        <div className="rounded-xl border border-border bg-black/30 p-3 font-mono text-[11px] text-mute">
-          Vercel → Settings → Environment Variables
-          <br />
-          VITE_SUPABASE_URL=https://xxx.supabase.co
-          <br />
-          VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_…
-          <br />
-          Environments: Production (y Preview si aplica)
-          <br />
-          Luego: Deployments → ⋮ → Redeploy
-        </div>
       </div>
     );
   }
@@ -72,12 +43,12 @@ export default function App() {
       <RequireConfig>
         <AuthProvider>
           <Routes>
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/join" element={<JoinPage />} />
-            {/* Compat: antigua ruta de onboarding */}
             <Route path="/onboarding" element={<Navigate to="/join" replace />} />
             <Route
-              path="/"
+              path="/projects"
               element={
                 <RequireAuth>
                   <ProjectsPage />

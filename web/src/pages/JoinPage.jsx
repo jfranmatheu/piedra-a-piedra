@@ -116,9 +116,9 @@ export default function JoinPage() {
     );
   }
 
-  // Cuenta ya activada → dashboard
+  // Cuenta ya activada → hub de proyectos
   if (!needsUsernameSetup) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/projects" replace />;
   }
 
   const onSubmit = async (e) => {
@@ -143,7 +143,7 @@ export default function JoinPage() {
         displayName: displayName.trim() || username,
       });
       await refreshProfile();
-      navigate("/", { replace: true });
+      navigate("/projects", { replace: true });
     } catch (err) {
       setError(err.message || "No se pudo crear la cuenta");
     } finally {

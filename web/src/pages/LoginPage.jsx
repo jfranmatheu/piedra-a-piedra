@@ -11,7 +11,7 @@ export default function LoginPage() {
 
   if (!loading && user) {
     return (
-      <Navigate to={needsUsernameSetup ? "/join" : "/"} replace />
+      <Navigate to={needsUsernameSetup ? "/join" : "/projects"} replace />
     );
   }
 

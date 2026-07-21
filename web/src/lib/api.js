@@ -481,6 +481,45 @@ export async function setPlatformInviteQuota(
   return json;
 }
 
+/** Público: lista de espera */
+export async function joinWaitlist(email) {
+  const res = await fetch("/api/waitlist-join", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+  return json;
+}
+
+export async function listWaitlist(accessToken) {
+  const res = await fetch("/api/waitlist-list", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+  return json;
+}
+
+/** Admin: invita a los N más antiguos de la waitlist */
+export async function batchInviteWaitlist(
+  { count, grantQuota },
+  accessToken
+) {
+  const res = await fetch("/api/waitlist-batch-invite", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ count, grantQuota }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+  return json;
+}
+
 /** Carga proyecto completo: stones + tasks + assignees */
 export async function loadProjectBoard(projectId) {
   const [project, members, stonesRes, tasksRes] = await Promise.all([

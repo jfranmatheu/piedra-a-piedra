@@ -46,7 +46,7 @@ function WorkspaceInner() {
       <div className="mx-auto mt-20 max-w-md rounded-2xl border border-rose-500/30 bg-rose-500/10 p-8 text-center">
         <h2 className="mb-2 text-lg font-bold text-rose-300">No se pudo cargar</h2>
         <p className="text-dim">{bootError}</p>
-        <Link to="/" className="mt-4 inline-block text-sm text-accent">
+        <Link to="/projects" className="mt-4 inline-block text-sm text-accent">
           ← Volver a proyectos
         </Link>
       </div>
@@ -57,7 +57,10 @@ function WorkspaceInner() {
     <>
       {/* thin project bar above views */}
       <div className="fixed left-0 right-0 top-0 z-[60] flex items-center justify-between gap-2 border-b border-border/80 bg-black/50 px-3 py-1.5 text-xs backdrop-blur-md">
-        <Link to="/" className="inline-flex items-center gap-1 text-mute hover:text-text">
+        <Link
+          to="/projects"
+          className="inline-flex items-center gap-1 text-mute hover:text-text"
+        >
           <ArrowLeft size={14} /> Proyectos
         </Link>
         <span className="truncate font-semibold">{project?.name}</span>
