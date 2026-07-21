@@ -5,7 +5,10 @@ export function AssigneeChips({ ids, compact = false }) {
   const { model } = useApp();
   const team = model?.team || [];
   const map = Object.fromEntries(team.map((m) => [m.id, m]));
-  if (!ids?.length) {
+  // Solo miembros actuales del proyecto (ignora assignees huérfanos / UUID fantasma)
+  const known = (ids || []).map((id) => map[id]).filter(Boolean);
+
+  if (!known.length) {
     return (
       <span className="inline-flex items-center rounded-full border border-dashed border-border px-2 py-0.5 text-[11px] text-mute">
         {compact ? "—" : "Sin asignar"}
@@ -14,12 +17,11 @@ export function AssigneeChips({ ids, compact = false }) {
   }
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
-      {ids.map((id) => {
-        const m = map[id] || { id, name: id, color: "#666" };
+      {known.map((m) => {
         if (compact) {
           return (
             <span
-              key={id}
+              key={m.id}
               title={m.role ? `${m.name} · ${m.role}` : m.name}
               className="inline-grid h-[18px] w-[18px] place-items-center rounded-full text-[9px] font-bold text-bg"
               style={{ background: m.color }}
@@ -30,7 +32,7 @@ export function AssigneeChips({ ids, compact = false }) {
         }
         return (
           <span
-            key={id}
+            key={m.id}
             className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] font-semibold"
             style={{
               borderColor: `${m.color}55`,

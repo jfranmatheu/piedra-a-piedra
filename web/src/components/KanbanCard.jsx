@@ -129,7 +129,11 @@ function PeriodPopup({ task, stone, meta, onClose, onSave }) {
 }
 
 function AssigneeDropdown({ task, team, onChange, onClose }) {
-  const [selected, setSelected] = useState(() => new Set(task.assignees || []));
+  const teamIds = new Set((team || []).map((m) => m.id));
+  const [selected, setSelected] = useState(
+    () =>
+      new Set((task.assignees || []).filter((id) => teamIds.has(id)))
+  );
   const ref = useRef(null);
 
   useEffect(() => {
@@ -541,29 +545,29 @@ export function KanbanCardFace({
           className="flex min-w-0 flex-wrap items-center gap-1 rounded-md px-0.5 py-0.5 hover:bg-white/5"
           title="Asignar miembros"
         >
-          {(task.assignees || []).length === 0 ? (
-            <span className="inline-flex items-center gap-1 text-[10px] text-mute">
-              <Users size={11} /> Asignar
-            </span>
-          ) : (
-            (task.assignees || []).map((id) => {
-              const m = team.find((t) => t.id === id) || {
-                id,
-                name: id,
-                color: "#666",
-              };
+          {(() => {
+            // Solo avatares de miembros actuales (sin UUID fantasma de ex-miembros)
+            const known = (task.assignees || [])
+              .map((id) => team.find((t) => t.id === id))
+              .filter(Boolean);
+            if (!known.length) {
               return (
-                <span
-                  key={id}
-                  title={m.name}
-                  className="inline-grid h-[18px] w-[18px] place-items-center rounded-full text-[9px] font-bold text-bg"
-                  style={{ background: m.color }}
-                >
-                  {initials(m.name)}
+                <span className="inline-flex items-center gap-1 text-[10px] text-mute">
+                  <Users size={11} /> Asignar
                 </span>
               );
-            })
-          )}
+            }
+            return known.map((m) => (
+              <span
+                key={m.id}
+                title={m.name}
+                className="inline-grid h-[18px] w-[18px] place-items-center rounded-full text-[9px] font-bold text-bg"
+                style={{ background: m.color }}
+              >
+                {initials(m.name)}
+              </span>
+            ));
+          })()}
         </button>
         {asgOpen && !overlay && (
           <AssigneeDropdown

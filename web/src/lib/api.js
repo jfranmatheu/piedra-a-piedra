@@ -540,9 +540,14 @@ export async function loadProjectBoard(projectId) {
   if (stonesRes.error) throw stonesRes.error;
   if (tasksRes.error) throw tasksRes.error;
 
+  // Solo assignees que siguen siendo miembros del proyecto
+  const memberIds = new Set((members || []).map((m) => m.id));
+
   const tasksByStone = {};
   for (const t of tasksRes.data || []) {
-    const assignees = (t.task_assignees || []).map((a) => a.user_id);
+    const assignees = (t.task_assignees || [])
+      .map((a) => a.user_id)
+      .filter((id) => memberIds.has(id));
     const mapped = {
       id: t.id,
       title: t.title,

@@ -142,6 +142,9 @@ create table if not exists public.task_assignees (
   primary key (task_id, user_id)
 );
 
+-- Al borrar un miembro del proyecto se limpian sus assignees (ver también 006_purge_…)
+-- El trigger se crea en 006; aquí solo documentamos la dependencia.
+
 -- ── Helpers ─────────────────────────────────────────────────────────────────
 create or replace function public.set_updated_at()
 returns trigger
