@@ -2,7 +2,7 @@
  * NVIDIA NIM credentials & prefs — solo en el navegador del usuario.
  * La API key nunca se guarda en Supabase.
  */
-import { DEFAULT_NIM_MODEL } from "./nimModels";
+import { DEFAULT_NIM_MODEL, NIM_MODELS } from "./nimModels";
 
 const STORAGE_KEY = "piedra-nim-settings-v1";
 const EVENT = "piedra-nim-settings";
@@ -15,14 +15,18 @@ function readRaw() {
   }
 }
 
+function resolveModel(id) {
+  if (typeof id === "string" && id && NIM_MODELS.some((m) => m.id === id)) {
+    return id;
+  }
+  return DEFAULT_NIM_MODEL;
+}
+
 export function getNimSettings() {
   const raw = readRaw();
   return {
     apiKey: typeof raw.apiKey === "string" ? raw.apiKey : "",
-    model:
-      typeof raw.model === "string" && raw.model
-        ? raw.model
-        : DEFAULT_NIM_MODEL,
+    model: resolveModel(raw.model),
   };
 }
 

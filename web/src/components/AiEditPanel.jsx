@@ -21,8 +21,9 @@ import {
 import {
   buildAcceptedBoard,
   diffStonesModels,
+  serializeCanonical,
 } from "../lib/stonesDiff";
-import { parseStones, serializeStones } from "../lib/stonesFormat";
+import { parseStones } from "../lib/stonesFormat";
 import { notify, notifyPromise } from "../lib/toast";
 import AiDiffReviewModal from "./AiDiffReviewModal";
 
@@ -194,7 +195,8 @@ export default function AiEditPanel({ open, onClose }) {
         })),
         project,
       };
-      const stonesText = serializeStones(board);
+      // Export limpio (sin assignees) para que el round-trip con la IA sea comparable
+      const stonesText = serializeCanonical(board);
       const mentionsContext = resolveMentionsContext(prompt, model.stones);
 
       const result = await notifyPromise(
@@ -215,8 +217,10 @@ export default function AiEditPanel({ open, onClose }) {
 
       setNimSettings({ model: modelId });
 
-      const parsed = parseStones(result.stonesText);
-      // Attach board meta for project-level diff
+      // After: parse de la respuesta IA
+      const afterParsed = parseStones(result.stonesText);
+
+      // Before: board real con ids DB (fuente de verdad para aplicar)
       const beforeModel = {
         title: board.title,
         subtitle: board.subtitle,
@@ -225,14 +229,19 @@ export default function AiEditPanel({ open, onClose }) {
         team: board.team,
         project: board.project,
       };
+
       const afterModel = {
-        title: parsed.title,
-        subtitle: parsed.subtitle,
-        meta: parsed.meta,
-        stones: parsed.stones,
+        title: afterParsed.title,
+        subtitle: afterParsed.subtitle,
+        meta: afterParsed.meta,
+        stones: afterParsed.stones,
       };
 
-      const d = diffStonesModels(beforeModel, afterModel);
+      // Diff canónico + snippets .stones (export enviado vs respuesta IA)
+      const d = diffStonesModels(beforeModel, afterModel, {
+        beforeText: stonesText,
+        afterText: result.stonesText,
+      });
       const has =
         d.summary.stonesAdded +
           d.summary.stonesRemoved +

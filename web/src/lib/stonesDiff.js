@@ -1,71 +1,28 @@
 /**
- * Diff estructural entre dos modelos parseados .stones (before/after).
- * Produce cambios granulares en piedras y tareas con ids estables de revisión.
+ * Diff estructural entre dos modelos .stones.
+ * Comparación canónica (sin falsos positivos) + snippets de texto para la UI.
  */
+import { hasLineChanges } from "./textDiff";
+import {
+  attachDbIds,
+  canonicalizeModel,
+  fieldChangesCanonical,
+  serializeCanonical,
+  serializeStoneSnippet,
+  serializeTaskSnippet,
+  stonesMetaEqual,
+  tasksEqual,
+  normTitle,
+} from "./stonesCanonical";
 
-function norm(s) {
-  return String(s || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+function stoneMatchKey(s) {
+  // Solo número o título — nunca id (UUID vs slug del parser)
+  if (s?.number != null && Number(s.number) > 0) return `n:${Number(s.number)}`;
+  return `t:${normTitle(s?.title)}`;
 }
 
-function stoneKey(s) {
-  if (s?.id && String(s.id).length > 8) return `id:${s.id}`;
-  if (s?.number != null) return `n:${s.number}`;
-  return `t:${norm(s?.title)}`;
-}
-
-function taskKey(t) {
-  return norm(t?.title);
-}
-
-function stoneFieldsEqual(a, b) {
-  const keys = [
-    "title",
-    "description",
-    "icon",
-    "color",
-    "time",
-    "period",
-    "dateStart",
-    "dateEnd",
-    "number",
-  ];
-  return keys.every((k) => String(a?.[k] ?? "") === String(b?.[k] ?? ""));
-}
-
-function taskFieldsEqual(a, b) {
-  const keys = [
-    "title",
-    "notes",
-    "xp",
-    "done",
-    "period",
-    "dateStart",
-    "dateEnd",
-    "img",
-  ];
-  if (!keys.every((k) => String(a?.[k] ?? "") === String(b?.[k] ?? ""))) {
-    return false;
-  }
-  const aa = (a?.assignees || []).map(String).sort().join(",");
-  const bb = (b?.assignees || []).map(String).sort().join(",");
-  return aa === bb;
-}
-
-function fieldChanges(before, after, keys) {
-  const changes = [];
-  for (const k of keys) {
-    const bv = before?.[k] ?? "";
-    const av = after?.[k] ?? "";
-    if (String(bv) !== String(av)) {
-      changes.push({ field: k, before: bv, after: av });
-    }
-  }
-  return changes;
+function taskMatchKey(t) {
+  return `t:${normTitle(t?.title)}`;
 }
 
 function matchPairs(beforeList, afterList, keyFn) {
@@ -75,13 +32,9 @@ function matchPairs(beforeList, afterList, keyFn) {
 
   for (const b of beforeList) {
     const bk = keyFn(b);
-    let idx = afterList.findIndex((a, i) => !afterUsed.has(i) && keyFn(a) === bk);
-    if (idx < 0) {
-      // fuzzy: same title if key was number-based
-      idx = afterList.findIndex(
-        (a, i) => !afterUsed.has(i) && norm(a.title) === norm(b.title)
-      );
-    }
+    const idx = afterList.findIndex(
+      (a, i) => !afterUsed.has(i) && keyFn(a) === bk
+    );
     if (idx >= 0) {
       afterUsed.add(idx);
       pairs.push({ before: b, after: afterList[idx] });
@@ -98,42 +51,57 @@ function diffTasks(beforeTasks = [], afterTasks = [], stoneDiffId) {
   const { pairs, beforeUnmatched, afterUnmatched } = matchPairs(
     beforeTasks,
     afterTasks,
-    taskKey
+    taskMatchKey
   );
   const out = [];
   let n = 0;
 
   for (const b of beforeUnmatched) {
+    const afterText = "";
+    const beforeText = serializeTaskSnippet(b);
     out.push({
       id: `${stoneDiffId}-t-rm-${n++}`,
       kind: "removed",
+      section: "removed",
       before: b,
       after: null,
       accepted: true,
       changes: [],
+      beforeText,
+      afterText,
     });
   }
   for (const a of afterUnmatched) {
+    const beforeText = "";
+    const afterText = serializeTaskSnippet(a);
     out.push({
       id: `${stoneDiffId}-t-add-${n++}`,
       kind: "added",
+      section: "new",
       before: null,
       after: a,
       accepted: true,
       changes: [],
+      beforeText,
+      afterText,
     });
   }
   for (const { before, after } of pairs) {
-    const equal = taskFieldsEqual(before, after);
+    const equal = tasksEqual(before, after);
+    const beforeText = serializeTaskSnippet(before);
+    const afterText = serializeTaskSnippet(after);
+    // Doble check: si el texto canónico es idéntico, no hay cambio
+    const textChanged = !equal && hasLineChanges(beforeText, afterText);
+    const reallyChanged = !equal && textChanged;
     out.push({
       id: `${stoneDiffId}-t-mod-${n++}`,
-      kind: equal ? "unchanged" : "modified",
+      kind: reallyChanged ? "modified" : "unchanged",
+      section: reallyChanged ? "changed" : "same",
       before,
       after: { ...after, id: before.id },
-      accepted: !equal,
-      changes: equal
-        ? []
-        : fieldChanges(before, after, [
+      accepted: reallyChanged,
+      changes: reallyChanged
+        ? fieldChangesCanonical(before, after, [
             "title",
             "notes",
             "xp",
@@ -142,56 +110,91 @@ function diffTasks(beforeTasks = [], afterTasks = [], stoneDiffId) {
             "dateStart",
             "dateEnd",
             "img",
-          ]),
+          ])
+        : [],
+      beforeText,
+      afterText,
     });
   }
   return out;
 }
 
 /**
- * @returns {{ project, stones, summary }}
+ * @param {object} beforeModel board con ids (DB)
+ * @param {object} afterModel parseado de la IA
+ * @param {{ beforeText?: string, afterText?: string }} opts
  */
-export function diffStonesModels(beforeModel, afterModel) {
+export function diffStonesModels(beforeModel, afterModel, opts = {}) {
   const beforeStones = beforeModel?.stones || [];
   const afterStones = afterModel?.stones || [];
 
-  const projectChanges = fieldChanges(
+  // Project meta — canónico
+  const bMeta = canonicalizeModel(beforeModel).meta;
+  const aMeta = canonicalizeModel(afterModel).meta;
+  const projectChanges = fieldChangesCanonical(
     {
       title: beforeModel?.title,
       subtitle: beforeModel?.subtitle,
-      start: beforeModel?.meta?.start,
-      end: beforeModel?.meta?.end,
+      start: bMeta.start,
+      end: bMeta.end,
     },
     {
       title: afterModel?.title,
       subtitle: afterModel?.subtitle,
-      start: afterModel?.meta?.start,
-      end: afterModel?.meta?.end,
+      start: aMeta.start,
+      end: aMeta.end,
     },
     ["title", "subtitle", "start", "end"]
   );
 
+  const projectBeforeText = [
+    `# Modelo: ${normTitle(beforeModel?.title) || "Sin título"}`,
+    beforeModel?.subtitle ? `> ${normTitle(beforeModel.subtitle)}` : null,
+    bMeta.start || bMeta.end ? "@meta" : null,
+    bMeta.start ? `start: ${bMeta.start}` : null,
+    bMeta.end ? `end: ${bMeta.end}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const projectAfterText = [
+    `# Modelo: ${normTitle(afterModel?.title) || "Sin título"}`,
+    afterModel?.subtitle ? `> ${normTitle(afterModel.subtitle)}` : null,
+    aMeta.start || aMeta.end ? "@meta" : null,
+    aMeta.start ? `start: ${aMeta.start}` : null,
+    aMeta.end ? `end: ${aMeta.end}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   const project = {
     id: "project-meta",
     kind: projectChanges.length ? "modified" : "unchanged",
+    section: projectChanges.length ? "changed" : "same",
     changes: projectChanges,
     accepted: projectChanges.length > 0,
     before: {
       title: beforeModel?.title,
       subtitle: beforeModel?.subtitle,
       meta: { ...(beforeModel?.meta || {}) },
+      start: bMeta.start,
+      end: bMeta.end,
     },
     after: {
       title: afterModel?.title,
       subtitle: afterModel?.subtitle,
       meta: { ...(afterModel?.meta || {}) },
+      start: aMeta.start,
+      end: aMeta.end,
     },
+    beforeText: projectBeforeText,
+    afterText: projectAfterText,
   };
 
   const { pairs, beforeUnmatched, afterUnmatched } = matchPairs(
     beforeStones,
     afterStones,
-    stoneKey
+    stoneMatchKey
   );
 
   const stones = [];
@@ -199,40 +202,54 @@ export function diffStonesModels(beforeModel, afterModel) {
 
   for (const b of beforeUnmatched) {
     const id = `stone-rm-${sn++}`;
+    const beforeText = serializeStoneSnippet(b);
     stones.push({
       id,
       kind: "removed",
+      section: "removed",
       before: b,
       after: null,
       accepted: true,
       changes: [],
+      beforeText,
+      afterText: "",
       taskDiffs: (b.tasks || []).map((t, i) => ({
         id: `${id}-t-${i}`,
         kind: "removed",
+        section: "removed",
         before: t,
         after: null,
         accepted: true,
         changes: [],
+        beforeText: serializeTaskSnippet(t),
+        afterText: "",
       })),
     });
   }
 
   for (const a of afterUnmatched) {
     const id = `stone-add-${sn++}`;
+    const afterText = serializeStoneSnippet(a);
     stones.push({
       id,
       kind: "added",
+      section: "new",
       before: null,
       after: a,
       accepted: true,
       changes: [],
+      beforeText: "",
+      afterText,
       taskDiffs: (a.tasks || []).map((t, i) => ({
         id: `${id}-t-${i}`,
         kind: "added",
+        section: "new",
         before: null,
         after: t,
         accepted: true,
         changes: [],
+        beforeText: "",
+        afterText: serializeTaskSnippet(t),
       })),
     });
   }
@@ -240,40 +257,65 @@ export function diffStonesModels(beforeModel, afterModel) {
   for (const { before, after } of pairs) {
     const id = `stone-mod-${sn++}`;
     const taskDiffs = diffTasks(before.tasks || [], after.tasks || [], id);
-    const stoneEqual = stoneFieldsEqual(before, after);
+    const metaEqual = stonesMetaEqual(before, after);
+    const stoneChanges = metaEqual
+      ? []
+      : fieldChangesCanonical(before, after, [
+          "title",
+          "description",
+          "icon",
+          // color omitido a propósito (defaults del parser)
+          "time",
+          "period",
+          "dateStart",
+          "dateEnd",
+          "number",
+        ]);
+
+    const beforeText = serializeStoneSnippet(before);
+    const afterText = serializeStoneSnippet(after);
     const tasksChanged = taskDiffs.some((t) => t.kind !== "unchanged");
-    const kind = stoneEqual && !tasksChanged ? "unchanged" : "modified";
+    // Piedra “modificada” solo si cambian campos de la piedra (no solo tareas hijas)
+    const stoneFieldsChanged =
+      stoneChanges.length > 0 && hasLineChanges(beforeText, afterText);
+
+    // Si solo cambian tareas, la piedra queda "container" modified light
+    let kind = "unchanged";
+    let section = "same";
+    if (stoneFieldsChanged && tasksChanged) {
+      kind = "modified";
+      section = "changed";
+    } else if (stoneFieldsChanged) {
+      kind = "modified";
+      section = "changed";
+    } else if (tasksChanged) {
+      kind = "modified"; // contenedor con tareas tocadas
+      section = "changed";
+    }
+
     stones.push({
       id,
       kind,
+      section,
       before,
       after: { ...after, id: before.id },
-      accepted: kind !== "unchanged",
-      changes: stoneEqual
-        ? []
-        : fieldChanges(before, after, [
-            "title",
-            "description",
-            "icon",
-            "color",
-            "time",
-            "period",
-            "dateStart",
-            "dateEnd",
-            "number",
-          ]),
+      // Aceptar piedra solo si cambian sus campos; las tareas tienen su propio toggle
+      accepted: stoneFieldsChanged,
+      stoneFieldsChanged,
+      tasksChanged,
+      changes: stoneFieldsChanged ? stoneChanges : [],
+      beforeText,
+      afterText,
       taskDiffs,
     });
   }
 
-  // Orden legible: removed, modified, added, unchanged last collapsed
-  const order = { removed: 0, modified: 1, added: 2, unchanged: 3 };
-  stones.sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9));
-
   const summary = {
     stonesAdded: stones.filter((s) => s.kind === "added").length,
     stonesRemoved: stones.filter((s) => s.kind === "removed").length,
-    stonesModified: stones.filter((s) => s.kind === "modified").length,
+    stonesModified: stones.filter(
+      (s) => s.kind === "modified" && s.stoneFieldsChanged
+    ).length,
     tasksAdded: stones.reduce(
       (n, s) => n + s.taskDiffs.filter((t) => t.kind === "added").length,
       0
@@ -289,7 +331,19 @@ export function diffStonesModels(beforeModel, afterModel) {
     projectChanged: project.kind === "modified",
   };
 
-  return { project, stones, summary };
+  // Textos completos opcionales (para vista global)
+  const fullBefore =
+    opts.beforeText ||
+    serializeCanonical(beforeModel);
+  const fullAfter = opts.afterText || serializeCanonical(afterModel);
+
+  return {
+    project,
+    stones,
+    summary,
+    fullBeforeText: fullBefore,
+    fullAfterText: fullAfter,
+  };
 }
 
 export function countAcceptedChanges(diff) {
@@ -297,12 +351,102 @@ export function countAcceptedChanges(diff) {
   let n = 0;
   if (diff.project?.kind === "modified" && diff.project.accepted) n += 1;
   for (const s of diff.stones || []) {
-    if (s.kind !== "unchanged" && s.accepted) n += 1;
+    if (s.kind === "added" && s.accepted) n += 1;
+    if (s.kind === "removed" && s.accepted) n += 1;
+    if (s.kind === "modified" && s.stoneFieldsChanged && s.accepted) n += 1;
     for (const t of s.taskDiffs || []) {
       if (t.kind !== "unchanged" && t.accepted) n += 1;
     }
   }
   return n;
+}
+
+/**
+ * Lista plana para la UI: new / changed / removed
+ */
+export function buildReviewSections(diff) {
+  const neu = [];
+  const changed = [];
+  const removed = [];
+
+  if (diff?.project?.kind === "modified") {
+    changed.push({
+      type: "project",
+      id: diff.project.id,
+      label: "Proyecto",
+      item: diff.project,
+    });
+  }
+
+  for (const s of diff?.stones || []) {
+    const num = s.after?.number ?? s.before?.number;
+    const title = s.after?.title || s.before?.title || "Piedra";
+    const stoneLabel = num != null ? `Piedra ${num} · ${title}` : title;
+
+    if (s.kind === "added") {
+      neu.push({
+        type: "stone",
+        id: s.id,
+        label: stoneLabel,
+        item: s,
+      });
+      continue;
+    }
+    if (s.kind === "removed") {
+      removed.push({
+        type: "stone",
+        id: s.id,
+        label: stoneLabel,
+        item: s,
+      });
+      continue;
+    }
+
+    if (s.stoneFieldsChanged) {
+      changed.push({
+        type: "stone",
+        id: s.id,
+        label: stoneLabel,
+        item: s,
+      });
+    }
+
+    for (const td of s.taskDiffs || []) {
+      if (td.kind === "unchanged") continue;
+      const tt = td.after?.title || td.before?.title || "Tarea";
+      const taskLabel = `${stoneLabel} → ${tt}`;
+      if (td.kind === "added") {
+        neu.push({
+          type: "task",
+          id: td.id,
+          label: taskLabel,
+          stoneId: s.id,
+          item: td,
+          stone: s,
+        });
+      } else if (td.kind === "removed") {
+        removed.push({
+          type: "task",
+          id: td.id,
+          label: taskLabel,
+          stoneId: s.id,
+          item: td,
+          stone: s,
+        });
+      } else if (td.kind === "modified") {
+        changed.push({
+          type: "task",
+          id: td.id,
+          label: taskLabel,
+          stoneId: s.id,
+          item: td,
+          stone: s,
+        });
+      }
+    }
+  }
+
+  return { neu, changed, removed };
 }
 
 /**
@@ -323,21 +467,26 @@ export function buildAcceptedBoard(beforeModel, diff) {
     if (s.kind === "added") {
       if (s.accepted) {
         const stone = structuredClone(s.after);
+        // Si la piedra se acepta, incluir tareas accepted (o todas added accepted)
         stone.tasks = (s.taskDiffs || [])
           .filter((t) => t.kind === "added" && t.accepted)
           .map((t) => structuredClone(t.after));
+        // Si no hay taskDiffs detallados, usar after.tasks
+        if (!s.taskDiffs?.length && s.after?.tasks) {
+          stone.tasks = structuredClone(s.after.tasks);
+        }
         stonesOut.push(stone);
       }
       continue;
     }
-    // modified
+    // modified container
     const base = structuredClone(s.before);
-    if (s.accepted && s.after) {
+    if (s.stoneFieldsChanged && s.accepted && s.after) {
       Object.assign(base, {
         title: s.after.title,
         description: s.after.description,
         icon: s.after.icon,
-        color: s.after.color,
+        color: s.after.color || base.color,
         time: s.after.time,
         period: s.after.period,
         dateStart: s.after.dateStart,
@@ -360,6 +509,8 @@ export function buildAcceptedBoard(beforeModel, diff) {
             ...structuredClone(t.before),
             ...structuredClone(t.after),
             id: t.before.id,
+            // no pisar assignees del before si after no trae
+            assignees: t.before.assignees || [],
           });
         } else {
           tasks.push(structuredClone(t.before));
@@ -370,18 +521,25 @@ export function buildAcceptedBoard(beforeModel, diff) {
     stonesOut.push(base);
   }
 
-  // Preserve relative order by number when possible
   stonesOut.sort(
-    (a, b) => (a.number ?? 0) - (b.number ?? 0) || (a.sort_order ?? 0) - (b.sort_order ?? 0)
+    (a, b) =>
+      (a.number ?? 0) - (b.number ?? 0) ||
+      (a.sort_order ?? 0) - (b.sort_order ?? 0)
   );
 
   let title = beforeModel.title;
   let subtitle = beforeModel.subtitle;
   let meta = { ...(beforeModel.meta || {}) };
-  if (diff.project?.kind === "modified" && diff.project.accepted && diff.project.after) {
+  if (
+    diff.project?.kind === "modified" &&
+    diff.project.accepted &&
+    diff.project.after
+  ) {
     title = diff.project.after.title ?? title;
     subtitle = diff.project.after.subtitle ?? subtitle;
     meta = { ...meta, ...(diff.project.after.meta || {}) };
+    if (diff.project.after.start != null) meta.start = diff.project.after.start;
+    if (diff.project.after.end != null) meta.end = diff.project.after.end;
   }
 
   return {
@@ -393,3 +551,5 @@ export function buildAcceptedBoard(beforeModel, diff) {
     project: beforeModel.project,
   };
 }
+
+export { attachDbIds, serializeCanonical };
