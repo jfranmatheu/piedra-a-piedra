@@ -435,18 +435,36 @@ export async function updateTaskDb(taskId, fields) {
   if (fields.stoneId != null) patch.stone_id = fields.stoneId;
   if (fields.sort_order != null) patch.sort_order = fields.sort_order;
 
-  const { data, error } = await supabase
-    .from("tasks")
-    .update(patch)
-    .eq("id", taskId)
-    .select()
-    .single();
-  if (error) throw error;
+  // Solo columnas de tasks: si solo cambian assignees, un UPDATE {} + .single()
+  // devuelve 406 (Not Acceptable) en PostgREST.
+  let data = null;
+  if (Object.keys(patch).length > 0) {
+    const { data: row, error } = await supabase
+      .from("tasks")
+      .update(patch)
+      .eq("id", taskId)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    data = row;
+  }
 
   if (Array.isArray(fields.assignees)) {
-    await supabase.from("task_assignees").delete().eq("task_id", taskId);
-    if (fields.assignees.length) {
-      const rows = fields.assignees.map((user_id) => ({ task_id: taskId, user_id }));
+    const { error: delErr } = await supabase
+      .from("task_assignees")
+      .delete()
+      .eq("task_id", taskId);
+    if (delErr) throw delErr;
+
+    const userIds = [
+      ...new Set(
+        fields.assignees
+          .map((id) => (id == null ? null : String(id)))
+          .filter(Boolean)
+      ),
+    ];
+    if (userIds.length) {
+      const rows = userIds.map((user_id) => ({ task_id: taskId, user_id }));
       const { error: aErr } = await supabase.from("task_assignees").insert(rows);
       if (aErr) throw aErr;
     }
