@@ -216,7 +216,8 @@
     "displayName": "Nombre visible",
     "emailPrivate": "Email (privado):",
     "updated": "Perfil actualizado",
-    "usernameRules": "Solo letras minúsculas, números y _ · sin espacios · no «admin» ni similares"
+    "usernameRules": "Solo letras minúsculas, números y _ · sin espacios · no «admin» ni similares",
+    "pickUsername": "Elige un username"
   },
   "projectSettings": {
     "project": "Proyecto",
@@ -523,5 +524,56 @@
       "leaveLi2": "Se purgan asignaciones de tareas para no dejar «fantasmas».",
       "leaveLi3": "El owner debe transferir la propiedad antes de salir si es el único dueño."
     }
+  },
+  "nim": {
+    "title": "NVIDIA NIM",
+    "lead": "Conecta tu API key gratuita de build.nvidia.com para editar el roadmap con IA de forma controlada (diff + confirmación).",
+    "signIn": "Iniciar sesión en NVIDIA",
+    "getKey": "Obtener API Key",
+    "apiKey": "API Key",
+    "keyLocal": "Se guarda solo en este navegador. No se sube a nuestros servidores de forma persistente.",
+    "defaultModel": "Modelo por defecto",
+    "save": "Guardar NIM",
+    "clear": "Quitar key",
+    "saved": "NVIDIA NIM guardado",
+    "cleared": "API key eliminada",
+    "showKey": "Mostrar",
+    "hideKey": "Ocultar"
+  },
+  "ai": {
+    "editWithAi": "Editar con IA",
+    "panelTitle": "Editar con IA",
+    "model": "Modelo",
+    "mentionHint": "@piedra · @piedra1#tarea",
+    "promptPlaceholder": "Ej: Añade 3 tareas a @piedra1 sobre validación de mercado. Marca prioridades con xp alto…",
+    "send": "Generar cambios",
+    "generating": "Generando con NIM…",
+    "generated": "Borrador listo — revisa el diff",
+    "generateFailed": "No se pudo generar",
+    "needKey": "Configura tu API key de NVIDIA NIM en Ajustes de perfil",
+    "needKeyInline": "Falta la API key de NVIDIA NIM.",
+    "openSettings": "Abrir proyectos / perfil",
+    "safeNote": "Nada se guarda hasta que confirmes el diff.",
+    "reviewTitle": "Revisar cambios de la IA",
+    "reviewLead": "Acepta o rechaza cada piedra y tarea. Solo lo marcado se aplicará a la base de datos.",
+    "kindAdded": "nueva",
+    "kindRemoved": "borrada",
+    "kindModified": "editada",
+    "kindUnchanged": "igual",
+    "stones": "piedras",
+    "tasks": "tareas",
+    "projectMeta": "Proyecto (nombre / fechas)",
+    "acceptAll": "Aceptar todo",
+    "rejectAll": "Rechazar todo",
+    "showUnchanged": "Mostrar sin cambios",
+    "noChanges": "No hay diferencias que mostrar",
+    "noChangesDetected": "El modelo no propuso cambios detectables",
+    "acceptedCount": "{{n}} cambios aceptados",
+    "confirmApply": "Aplicar seleccionados",
+    "applying": "Guardando en el proyecto…",
+    "applied": "Cambios aplicados",
+    "applyFailed": "Error al aplicar",
+    "untitledStone": "Piedra sin título",
+    "untitledTask": "Tarea sin título"
   }
 }

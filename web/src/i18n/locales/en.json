@@ -216,7 +216,8 @@
     "displayName": "Display name",
     "emailPrivate": "Email (private):",
     "updated": "Profile updated",
-    "usernameRules": "Lowercase letters, numbers and _ only · no spaces · not «admin» and similar"
+    "usernameRules": "Lowercase letters, numbers and _ only · no spaces · not «admin» and similar",
+    "pickUsername": "Pick a username"
   },
   "projectSettings": {
     "project": "Project",
@@ -523,5 +524,56 @@
       "leaveLi2": "Task assignees are purged so no ghost assignments remain.",
       "leaveLi3": "The owner must transfer ownership before leaving if they are the sole owner."
     }
+  },
+  "nim": {
+    "title": "NVIDIA NIM",
+    "lead": "Connect your free API key from build.nvidia.com to edit roadmaps with AI under review (diff + confirm).",
+    "signIn": "Sign in to NVIDIA",
+    "getKey": "Get API Key",
+    "apiKey": "API Key",
+    "keyLocal": "Stored only in this browser. Not persisted on our servers.",
+    "defaultModel": "Default model",
+    "save": "Save NIM",
+    "clear": "Remove key",
+    "saved": "NVIDIA NIM saved",
+    "cleared": "API key removed",
+    "showKey": "Show",
+    "hideKey": "Hide"
+  },
+  "ai": {
+    "editWithAi": "Edit with AI",
+    "panelTitle": "Edit with AI",
+    "model": "Model",
+    "mentionHint": "@piedra · @piedra1#task",
+    "promptPlaceholder": "E.g. Add 3 tasks to @piedra1 about market validation. Higher xp for priorities…",
+    "send": "Generate changes",
+    "generating": "Generating with NIM…",
+    "generated": "Draft ready — review the diff",
+    "generateFailed": "Generation failed",
+    "needKey": "Set your NVIDIA NIM API key in profile settings",
+    "needKeyInline": "NVIDIA NIM API key missing.",
+    "openSettings": "Open projects / profile",
+    "safeNote": "Nothing is saved until you confirm the diff.",
+    "reviewTitle": "Review AI changes",
+    "reviewLead": "Accept or reject each stone and task. Only accepted items are written to the database.",
+    "kindAdded": "added",
+    "kindRemoved": "removed",
+    "kindModified": "edited",
+    "kindUnchanged": "same",
+    "stones": "stones",
+    "tasks": "tasks",
+    "projectMeta": "Project (name / dates)",
+    "acceptAll": "Accept all",
+    "rejectAll": "Reject all",
+    "showUnchanged": "Show unchanged",
+    "noChanges": "No differences to show",
+    "noChangesDetected": "The model proposed no detectable changes",
+    "acceptedCount": "{{n}} accepted changes",
+    "confirmApply": "Apply selected",
+    "applying": "Saving to project…",
+    "applied": "Changes applied",
+    "applyFailed": "Failed to apply",
+    "untitledStone": "Untitled stone",
+    "untitledTask": "Untitled task"
   }
 }

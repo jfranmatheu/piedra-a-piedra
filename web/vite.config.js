@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { nimChatDevPlugin } from "./vite-plugin-nim-api.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -51,7 +52,7 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), nimChatDevPlugin()],
     envDir: __dirname,
     resolve: {
       alias: {
@@ -60,6 +61,8 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
+      // Las peticiones NIM pueden tardar minutos en modelos grandes
+      proxy: undefined,
     },
     build: {
       outDir: path.resolve(__dirname, "../dist"),

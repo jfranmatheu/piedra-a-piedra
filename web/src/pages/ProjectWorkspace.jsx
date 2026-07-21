@@ -1,16 +1,21 @@
-import { ArrowLeft, Loader2, Settings, UserPlus } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, Loader2, Settings, Sparkles, UserPlus } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AppProvider, useApp } from "../context/AppContext";
-import { useAuth } from "../context/AuthContext";
+import AiEditPanel from "../components/AiEditPanel";
 import KanbanView from "../components/KanbanView";
-import TimelineView from "../components/TimelineView";
 import PanelView from "../components/PanelView";
 import ProjectSettingsModal from "../components/ProjectSettingsModal";
+import TimelineView from "../components/TimelineView";
 import ViewToggle from "../components/ViewToggle";
 import { ProgressBar } from "../components/ui";
+import { AppProvider, useApp } from "../context/AppContext";
+import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../i18n";
 import * as api from "../lib/api";
+import {
+  hasNimApiKey,
+  subscribeNimSettings,
+} from "../lib/nimSettings";
 import { notifyPromise } from "../lib/toast";
 
 function WorkspaceInner() {
@@ -30,8 +35,15 @@ function WorkspaceInner() {
   } = useApp();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [nimReady, setNimReady] = useState(() => hasNimApiKey());
   const [username, setUsername] = useState("");
   const [inviting, setInviting] = useState(false);
+
+  useEffect(() => {
+    setNimReady(hasNimApiKey());
+    return subscribeNimSettings(() => setNimReady(hasNimApiKey()));
+  }, []);
 
   const myMember = members?.find((m) => m.id === user?.id);
   const myRole =
@@ -94,6 +106,23 @@ function WorkspaceInner() {
         )}
 
         <div className="flex shrink-0 items-center gap-1.5">
+          {nimReady && (
+            <button
+              type="button"
+              onClick={() => setAiOpen((v) => !v)}
+              className={[
+                "inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition",
+                aiOpen
+                  ? "border-accent/50 bg-accent/20 text-accent"
+                  : "border-accent/30 bg-accent/10 text-accent hover:bg-accent/20",
+              ].join(" ")}
+              title={t("ai.editWithAi")}
+            >
+              <Sparkles size={12} />
+              <span className="hidden sm:inline">{t("ai.editWithAi")}</span>
+              <span className="sm:hidden">IA</span>
+            </button>
+          )}
           {canManage && (
             <button
               type="button"
@@ -113,11 +142,13 @@ function WorkspaceInner() {
           </button>
         </div>
       </div>
-      <div className="pt-11 sm:pt-10">
+      <div className={`pt-11 sm:pt-10 ${aiOpen ? "pb-52" : ""}`}>
         {viewMode === "timeline" && <TimelineView />}
         {viewMode === "sidebar" && <PanelView />}
         {viewMode === "kanban" && <KanbanView />}
       </div>
+
+      <AiEditPanel open={aiOpen} onClose={() => setAiOpen(false)} />
 
       <div className="pointer-events-none fixed bottom-6 right-6 z-[80] flex flex-col gap-2">
         {toasts.map((t) => (

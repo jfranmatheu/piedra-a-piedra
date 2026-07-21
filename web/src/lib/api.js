@@ -729,6 +729,7 @@ export async function updateStoneDb(stoneId, fields) {
   if (fields.dateStart != null) patch.date_start = fields.dateStart || null;
   if (fields.dateEnd != null) patch.date_end = fields.dateEnd || null;
   if (fields.sort_order != null) patch.sort_order = fields.sort_order;
+  if (fields.number != null) patch.number = fields.number;
 
   const { data, error } = await supabase
     .from("stones")
@@ -744,6 +745,22 @@ export async function deleteStoneDb(stoneId) {
   // tasks cascade via FK on stone_id
   const { error } = await supabase.from("stones").delete().eq("id", stoneId);
   if (error) throw error;
+}
+
+/** Actualiza number y/o sort_order de una piedra */
+export async function updateStoneNumber(stoneId, number, sortOrder = null) {
+  const patch = {};
+  if (number != null) patch.number = number;
+  if (sortOrder != null) patch.sort_order = sortOrder;
+  if (!Object.keys(patch).length) return null;
+  const { data, error } = await supabase
+    .from("stones")
+    .update(patch)
+    .eq("id", stoneId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 export async function createTaskDb(projectId, stoneId, fields) {
