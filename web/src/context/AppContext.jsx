@@ -216,7 +216,12 @@ export function AppProvider({ children }) {
           ...(fields.period != null ? { period: fields.period } : {}),
           ...(fields.dateStart != null ? { dateStart: fields.dateStart } : {}),
           ...(fields.dateEnd != null ? { dateEnd: fields.dateEnd } : {}),
-          ...(fields.img != null ? { img: fields.img, imagePath: fields.img } : {}),
+          ...(fields.img !== undefined
+            ? { img: fields.img || "", imagePath: fields.img || "" }
+            : {}),
+          ...(fields.imagePath !== undefined
+            ? { img: fields.imagePath || "", imagePath: fields.imagePath || "" }
+            : {}),
           ...(Array.isArray(fields.assignees) ? { assignees: fields.assignees } : {}),
         });
         if (fields.dateStart != null || fields.dateEnd != null) {
@@ -231,11 +236,11 @@ export function AppProvider({ children }) {
       });
 
       try {
-        await api.updateTaskDb(taskId, {
-          ...fields,
-          stoneId: fields.stoneId,
-          img: fields.img,
-        });
+        const payload = { ...fields };
+        if (fields.stoneId !== undefined) payload.stoneId = fields.stoneId;
+        // Explicit clear: keep img: null so updateTaskDb sets image_path = null
+        if (fields.img !== undefined) payload.img = fields.img;
+        await api.updateTaskDb(taskId, payload);
         if (fields.done === true && !task.done) {
           toast(`✨ +${task.xp || 0} XP`, "xp");
         } else if (fields.title != null || fields.notes != null) {

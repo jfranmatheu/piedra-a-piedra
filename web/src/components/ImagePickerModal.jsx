@@ -1,4 +1,4 @@
-import { ImagePlus, Upload, X } from "lucide-react";
+import { ImagePlus, Trash2, Upload, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useApp } from "../context/AppContext";
 import * as api from "../lib/api";
@@ -65,19 +65,36 @@ export default function ImagePickerModal({ open, current, onSelect, onClose }) {
         </div>
 
         <div className="border-b border-border px-4 py-3">
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border-strong bg-white/5 px-3 py-2 text-sm font-semibold hover:bg-white/10">
-            <Upload size={16} />
-            {uploading ? "Subiendo…" : "Cargar imagen"}
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              disabled={uploading}
-              onChange={onFile}
-            />
-          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border-strong bg-white/5 px-3 py-2 text-sm font-semibold hover:bg-white/10">
+              <Upload size={16} />
+              {uploading ? "Subiendo…" : "Cargar imagen"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploading}
+                onChange={onFile}
+              />
+            </label>
+            {current ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onSelect(null);
+                  onClose();
+                }}
+                className="inline-flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/15 px-3 py-2 text-sm font-semibold text-rose-200 hover:bg-rose-500/25"
+              >
+                <Trash2 size={16} />
+                Quitar de la tarjeta
+              </button>
+            ) : null}
+          </div>
           <p className="mt-1.5 text-xs text-mute">
-            Se guarda en Supabase Storage (<code>project-assets</code>)
+            Se guarda en Supabase Storage (<code>project-assets</code>). Quitar
+            solo desvincula la imagen de esta tarea (no borra el archivo del
+            proyecto).
           </p>
           {error && <p className="mt-2 text-xs text-red-300">{error}</p>}
         </div>

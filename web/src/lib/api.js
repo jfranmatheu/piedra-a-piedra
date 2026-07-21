@@ -712,8 +712,9 @@ export async function updateTaskDb(taskId, fields) {
   if (fields.period != null) patch.period = fields.period;
   if (fields.dateStart != null) patch.date_start = fields.dateStart || null;
   if (fields.dateEnd != null) patch.date_end = fields.dateEnd || null;
-  if (fields.img != null) patch.image_path = fields.img || null;
-  if (fields.imagePath != null) patch.image_path = fields.imagePath || null;
+  // Permitir borrar imagen: img: null | "" → image_path = null
+  if (fields.img !== undefined) patch.image_path = fields.img || null;
+  if (fields.imagePath !== undefined) patch.image_path = fields.imagePath || null;
   if (fields.stoneId != null) patch.stone_id = fields.stoneId;
   if (fields.sort_order != null) patch.sort_order = fields.sort_order;
 

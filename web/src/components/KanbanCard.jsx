@@ -1,6 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Clock, GripVertical, ImageIcon, Pencil, Users } from "lucide-react";
+import { Clock, GripVertical, ImageIcon, Pencil, Trash2, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import * as api from "../lib/api";
 import { useApp } from "../context/AppContext";
@@ -327,18 +327,32 @@ export function KanbanCardFace({
             }}
           />
           {!overlay && (
-            <button
-              type="button"
-              onPointerDown={stop}
-              onClick={(e) => {
-                stop(e);
-                setPickerOpen(true);
-              }}
-              className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-lg border border-white/20 bg-black/60 text-white opacity-0 transition group-hover/img:opacity-100 hover:bg-black/80"
-              title="Cambiar imagen"
-            >
-              <Pencil size={12} />
-            </button>
+            <div className="absolute right-1.5 top-1.5 flex gap-1 opacity-0 transition group-hover/img:opacity-100">
+              <button
+                type="button"
+                onPointerDown={stop}
+                onClick={(e) => {
+                  stop(e);
+                  setPickerOpen(true);
+                }}
+                className="grid h-7 w-7 place-items-center rounded-lg border border-white/20 bg-black/60 text-white hover:bg-black/80"
+                title="Cambiar imagen"
+              >
+                <Pencil size={12} />
+              </button>
+              <button
+                type="button"
+                onPointerDown={stop}
+                onClick={(e) => {
+                  stop(e);
+                  save({ img: null });
+                }}
+                className="grid h-7 w-7 place-items-center rounded-lg border border-rose-400/40 bg-black/60 text-rose-200 hover:bg-rose-500/40"
+                title="Quitar imagen"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
           )}
         </div>
       ) : (
