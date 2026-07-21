@@ -2,6 +2,11 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { useI18n } from "./i18n";
 import { supabaseConfig } from "./lib/supabase";
+import DocsIndexPage from "./pages/DocsIndexPage";
+import DocsStartPage from "./pages/DocsStartPage";
+import DocsStonesPage from "./pages/DocsStonesPage";
+import DocsTeamPage from "./pages/DocsTeamPage";
+import DocsWorkspacePage from "./pages/DocsWorkspacePage";
 import JoinPage from "./pages/JoinPage";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
@@ -45,6 +50,11 @@ export default function App() {
         <AuthProvider>
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/docs" element={<DocsIndexPage />} />
+            <Route path="/docs/start" element={<DocsStartPage />} />
+            <Route path="/docs/stones" element={<DocsStonesPage />} />
+            <Route path="/docs/workspace" element={<DocsWorkspacePage />} />
+            <Route path="/docs/team" element={<DocsTeamPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/join" element={<JoinPage />} />
             <Route path="/onboarding" element={<Navigate to="/join" replace />} />

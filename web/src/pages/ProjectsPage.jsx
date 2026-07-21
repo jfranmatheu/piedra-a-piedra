@@ -1,5 +1,6 @@
 import {
   Bell,
+  BookOpen,
   Crown,
   FileUp,
   LogOut,
@@ -259,6 +260,13 @@ export default function ProjectsPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/docs"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-sm text-dim hover:bg-white/5"
+              title="Docs"
+            >
+              <BookOpen size={14} /> Docs
+            </Link>
             <LanguageSwitcher />
             {showInviteBtn && (
               <button

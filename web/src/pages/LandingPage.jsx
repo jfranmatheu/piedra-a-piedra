@@ -73,6 +73,12 @@ export default function LandingPage() {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <Link
+            to="/docs"
+            className="hidden text-xs font-semibold text-mute hover:text-dim sm:inline"
+          >
+            Docs
+          </Link>
           <LanguageSwitcher />
           <Link
             to="/login"
@@ -243,6 +249,9 @@ export default function LandingPage() {
         <footer className="mt-16 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-8 text-[11px] text-mute">
           <span>🪨 {t("landing.footer")}</span>
           <div className="flex items-center gap-3">
+            <Link to="/docs" className="hover:text-dim">
+              Docs
+            </Link>
             <LanguageSwitcher />
             <Link to="/login" className="hover:text-dim">
               {t("common.membersAccess")}
