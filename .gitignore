@@ -1,4 +1,24 @@
+# dependencies
 node_modules/
+
+# build
 dist/
+web/dist/
+
+# env
 .env
-..git/
+.env.local
+web/.env.local
+.env.*.local
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# python leftovers (if any)
+__pycache__/
+*.pyc
+.venv/

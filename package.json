@@ -4,7 +4,6 @@
   "scripts": {
     "dev": "npm --prefix web run dev",
     "build": "npm --prefix web run build",
-    "server": "python server.py",
-    "start": "npm run build && python server.py"
+    "preview": "npm --prefix web run preview"
   }
 }

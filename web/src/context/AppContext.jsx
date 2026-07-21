@@ -13,7 +13,7 @@ import {
   isTaskActiveByDate,
   periodLabelFromDates,
 } from "../lib/dates";
-import { levelFromXp, taskKey, uniqueTaskId } from "../lib/utils";
+import { levelFromXp, taskKey } from "../lib/utils";
 import { publicAssetUrl } from "../lib/supabase";
 
 const FILTER_KEY = "piedra-filters-v2";
@@ -481,7 +481,6 @@ export function AppProvider({ children }) {
     reload,
     resolveImgUrl,
     UNASSIGNED,
-    progress: {}, // compat
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

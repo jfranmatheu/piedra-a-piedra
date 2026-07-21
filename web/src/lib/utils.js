@@ -8,25 +8,6 @@ export function parseTaskKey(key) {
   return { stoneId: key.slice(0, i), taskId: key.slice(i + 2) };
 }
 
-export function slugify(text) {
-  return String(text || "item")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "item";
-}
-
-export function uniqueTaskId(stone, title) {
-  let base = slugify(title);
-  let id = base;
-  let n = 2;
-  const used = new Set((stone.tasks || []).map((t) => t.id));
-  while (used.has(id)) id = `${base}-${n++}`;
-  return id;
-}
-
 export function initials(name) {
   const parts = String(name || "?").trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return "?";
