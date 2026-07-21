@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   Crown,
+  Download,
   Loader2,
   LogOut,
   Trash2,
@@ -13,6 +14,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useConfirm } from "../hooks/useConfirm";
 import * as api from "../lib/api";
+import {
+  downloadStonesFile,
+  safeStonesFilename,
+} from "../lib/stonesFormat";
 import { notify, notifyPromise } from "../lib/toast";
 import { sanitizeUsernameInput } from "../lib/username";
 
@@ -50,6 +55,7 @@ export default function ProjectSettingsModal({
   const [msg, setMsg] = useState(null);
   const [busy, setBusy] = useState(false);
   const [inviting, setInviting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // General
   const [name, setName] = useState("");
@@ -316,6 +322,25 @@ export default function ProjectSettingsModal({
     return m.role === "member";
   };
 
+  const exportStones = async () => {
+    setExporting(true);
+    try {
+      const { text, name: pname } = await notifyPromise(
+        api.exportProjectToStonesText(projectId),
+        {
+          loading: "Exportando .stones…",
+          success: "Archivo listo",
+          error: (e) => e.message || "Error al exportar",
+        }
+      );
+      downloadStonesFile(safeStonesFilename(pname), text);
+    } catch {
+      /* toast */
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-3 backdrop-blur-md sm:p-4"
@@ -409,13 +434,15 @@ export default function ProjectSettingsModal({
                         />
                       </label>
                     </div>
-                    <button
-                      type="submit"
-                      disabled={busy}
-                      className="rounded-xl border border-accent/40 bg-accent/20 px-3 py-2 text-sm font-semibold disabled:opacity-50"
-                    >
-                      Guardar cambios
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="submit"
+                        disabled={busy}
+                        className="rounded-xl border border-accent/40 bg-accent/20 px-3 py-2 text-sm font-semibold disabled:opacity-50"
+                      >
+                        Guardar cambios
+                      </button>
+                    </div>
                   </form>
                 ) : (
                   <div className="rounded-xl border border-border bg-black/20 px-3 py-3 text-sm text-dim">
@@ -435,6 +462,23 @@ export default function ProjectSettingsModal({
                     </p>
                   </div>
                 )}
+                <button
+                  type="button"
+                  disabled={exporting}
+                  onClick={exportStones}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-semibold text-dim hover:bg-white/5 disabled:opacity-50"
+                >
+                  {exporting ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Download size={14} />
+                  )}
+                  Exportar .stones
+                </button>
+                <p className="mt-1.5 text-[11px] text-mute">
+                  Descarga el roadmap en texto natural (compatible con el formato
+                  clásico .stones).
+                </p>
               </section>
 
               {/* ── Members ── */}

@@ -1,4 +1,5 @@
 import { supabase, publicAssetUrl } from "./supabase";
+import { serializeStones } from "./stonesFormat";
 import { normalizeUsername, validateUsername } from "./username";
 
 /** Map common PostgREST / Auth errors to actionable Spanish messages. */
@@ -870,6 +871,72 @@ export async function listProjectImages(projectId) {
       const path = `${projectId}/${f.name}`;
       return { name: f.name, path, url: publicAssetUrl(path) };
     });
+}
+
+/**
+ * Importa un modelo .stones parseado → nuevo proyecto + piedras + tareas.
+ */
+export async function importProjectFromStones(parsed) {
+  const title = (parsed.title || "Proyecto importado").trim();
+  const description = (parsed.subtitle || "").trim();
+  const meta = parsed.meta || {};
+  const start =
+    meta.start || meta.inicio || meta.fecha || meta.date_start || null;
+  const end = meta.end || meta.fin || meta.date_end || null;
+
+  const project = await createProject({
+    name: title,
+    description,
+    start_date: start || null,
+    end_date: end || null,
+  });
+
+  const stones = parsed.stones || [];
+  for (let i = 0; i < stones.length; i++) {
+    const s = stones[i];
+    const stoneRow = await createStone(project.id, {
+      title: s.title || `Piedra ${i + 1}`,
+      description: s.description || "",
+      icon: s.icon || "🪨",
+      color: s.color || "#f59e0b",
+      time: s.time || "",
+      period: s.period || "",
+      dateStart: s.dateStart || null,
+      dateEnd: s.dateEnd || null,
+    });
+
+    await supabase
+      .from("stones")
+      .update({
+        number: s.number ?? i + 1,
+        sort_order: i,
+      })
+      .eq("id", stoneRow.id);
+
+    for (const t of s.tasks || []) {
+      await createTaskDb(project.id, stoneRow.id, {
+        title: t.title || "Tarea",
+        notes: t.notes || "",
+        xp: t.xp ?? 50,
+        done: !!t.done,
+        period: t.period || "",
+        dateStart: t.dateStart || null,
+        dateEnd: t.dateEnd || null,
+        img: t.img || null,
+      });
+    }
+  }
+
+  return project;
+}
+
+/** Carga el board y devuelve texto .stones listo para descargar */
+export async function exportProjectToStonesText(projectId) {
+  const board = await loadProjectBoard(projectId);
+  return {
+    text: serializeStones(board),
+    name: board.title || board.project?.name || "proyecto",
+  };
 }
 
 export { publicAssetUrl };

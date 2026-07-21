@@ -1,6 +1,7 @@
 import {
   Bell,
   Crown,
+  FileUp,
   LogOut,
   Plus,
   Settings,
@@ -8,7 +9,7 @@ import {
   Sparkles,
   UserPlus,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import PlatformInviteModal from "../components/PlatformInviteModal";
@@ -18,7 +19,8 @@ import { ProgressBar } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../i18n";
 import * as api from "../lib/api";
-import { notify } from "../lib/toast";
+import { parseStones } from "../lib/stonesFormat";
+import { notify, notifyPromise } from "../lib/toast";
 import { levelFromXp } from "../lib/utils";
 
 const ROLE_META = {
@@ -144,6 +146,8 @@ export default function ProjectsPage() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [manageProject, setManageProject] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const importRef = useRef(null);
 
   const load = async () => {
     setLoading(true);
@@ -195,6 +199,31 @@ export default function ProjectsPage() {
     (n) => n.type === "project_invite" && !n.read_at
   );
   const showInviteBtn = canInviteToPlatform || isPlatformAdmin;
+
+  const onImportStones = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const parsed = parseStones(text);
+      if (!parsed.stones?.length && !parsed.title) {
+        throw new Error("El archivo .stones no tiene contenido reconocible");
+      }
+      const project = await notifyPromise(api.importProjectFromStones(parsed), {
+        loading: "Importando .stones…",
+        success: (p) => `Proyecto «${p.name}» importado`,
+        error: (err) => err.message || "Error al importar",
+      });
+      await load();
+      window.location.href = `/p/${project.id}`;
+    } catch (err) {
+      if (err?.message) notify.error(err.message);
+    } finally {
+      setImporting(false);
+    }
+  };
 
   return (
     <div className="min-h-dvh bg-bg">
@@ -318,13 +347,31 @@ export default function ProjectsPage() {
               </h1>
               <p className="text-sm text-mute">{t("projects.hubSubtitle")}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/20 px-3 py-2 text-sm font-semibold hover:bg-accent/30"
-            >
-              <Plus size={16} /> {t("projects.new")}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                ref={importRef}
+                type="file"
+                accept=".stones,text/plain"
+                className="hidden"
+                onChange={onImportStones}
+              />
+              <button
+                type="button"
+                disabled={importing}
+                onClick={() => importRef.current?.click()}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-sm font-semibold text-dim hover:bg-white/5 disabled:opacity-50"
+              >
+                <FileUp size={16} />
+                {importing ? "…" : "Importar .stones"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreate(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/20 px-3 py-2 text-sm font-semibold hover:bg-accent/30"
+              >
+                <Plus size={16} /> {t("projects.new")}
+              </button>
+            </div>
           </div>
 
           {loading ? (
