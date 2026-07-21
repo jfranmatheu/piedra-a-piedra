@@ -1,4 +1,5 @@
 import { supabase, publicAssetUrl } from "./supabase";
+import { normalizeUsername, validateUsername } from "./username";
 
 /** Map common PostgREST / Auth errors to actionable Spanish messages. */
 function mapSupabaseError(error, fallback = "Error de Supabase") {
@@ -87,8 +88,54 @@ export async function updateProfile(userId, patch) {
     .eq("id", userId)
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    const code = String(error.code || "");
+    const msg = (error.message || "").toLowerCase();
+    if (code === "23505" || msg.includes("duplicate") || msg.includes("unique")) {
+      throw new Error("Ese username ya está en uso. Prueba otro.");
+    }
+    if (code === "23514" || msg.includes("check") || msg.includes("username_format")) {
+      throw new Error(
+        "Username no válido: solo a-z, 0-9 y _ (3–32 caracteres)."
+      );
+    }
+    throw mapSupabaseError(error);
+  }
   return data;
+}
+
+/** True if username is free (or already owned by excludeUserId). */
+export async function isUsernameAvailable(username, excludeUserId) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("username", username)
+    .maybeSingle();
+  if (error) throw mapSupabaseError(error);
+  if (!data) return true;
+  return data.id === excludeUserId;
+}
+
+/**
+ * Set public username (+ optional display name) and mark onboarding done.
+ */
+export async function setUsername(userId, username, { displayName } = {}) {
+  const u = normalizeUsername(username);
+  const err = validateUsername(u);
+  if (err) throw new Error(err);
+
+  const free = await isUsernameAvailable(u, userId);
+  if (!free) throw new Error("Ese username ya está en uso. Prueba otro.");
+
+  const patch = {
+    username: u,
+    username_setup_done: true,
+  };
+  if (displayName !== undefined) {
+    patch.display_name = String(displayName ?? "").trim() || u;
+  }
+
+  return updateProfile(userId, patch);
 }
 
 export async function listMyProjects() {

@@ -89,10 +89,12 @@ where lower(email) = lower('TU_ADMIN@email.com');
 
 1. Admin inicia sesión.
 2. **Invitar a la plataforma** (email) → el usuario recibe el mail de Supabase y define contraseña.
-3. Cualquier usuario **crea proyectos**.
-4. Owner/admin del proyecto **invita por @username**.
-5. El invitado ve la notificación y acepta → entra al proyecto.
-6. Kanban / Timeline / Panel por proyecto; assets en bucket `project-assets`.
+3. En el **primer acceso**, el invitado elige su **@username** (pantalla de onboarding) y entiende que el email no se comparte.
+4. Cualquier usuario **crea proyectos**.
+5. Owner/admin del proyecto **invita por @username** (el email sigue privado).
+6. El invitado ve la notificación y acepta → entra al proyecto.
+7. Username editable en cualquier momento desde **Perfil** en el hub de proyectos.
+8. Kanban / Timeline / Panel por proyecto; assets en bucket `project-assets`.
 
 ## 6. Desarrollo local
 

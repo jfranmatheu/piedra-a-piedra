@@ -1,8 +1,9 @@
-import { Bell, LogOut, Plus, Shield, UserPlus } from "lucide-react";
+import { Bell, LogOut, Plus, Settings, Shield, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import * as api from "../lib/api";
+import ProfileSettingsModal from "../components/ProfileSettingsModal";
 
 export default function ProjectsPage() {
   const { profile, session, isPlatformAdmin, signOut, refreshProfile } = useAuth();
@@ -15,6 +16,7 @@ export default function ProjectsPage() {
   const [startDate, setStartDate] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMsg, setInviteMsg] = useState(null);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -73,7 +75,15 @@ export default function ProjectsPage() {
           <div>
             <div className="text-lg font-extrabold tracking-tight">🪨 Piedra a Piedra</div>
             <div className="text-sm text-dim">
-              Hola, <span className="text-text">@{profile?.username}</span>
+              Hola,{" "}
+              <button
+                type="button"
+                onClick={() => setProfileOpen(true)}
+                className="font-semibold text-text underline-offset-2 hover:underline"
+                title="Editar username"
+              >
+                @{profile?.username}
+              </button>
               {isPlatformAdmin && (
                 <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent">
                   <Shield size={10} /> admin
@@ -81,13 +91,23 @@ export default function ProjectsPage() {
               )}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => signOut()}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-sm text-dim hover:bg-white/5"
-          >
-            <LogOut size={14} /> Salir
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setProfileOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-sm text-dim hover:bg-white/5"
+              title="Perfil y username"
+            >
+              <Settings size={14} /> Perfil
+            </button>
+            <button
+              type="button"
+              onClick={() => signOut()}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-sm text-dim hover:bg-white/5"
+            >
+              <LogOut size={14} /> Salir
+            </button>
+          </div>
         </div>
       </header>
 
@@ -260,6 +280,10 @@ export default function ProjectsPage() {
           </section>
         )}
       </main>
+
+      {profileOpen && (
+        <ProfileSettingsModal onClose={() => setProfileOpen(false)} />
+      )}
     </div>
   );
 }

@@ -3,13 +3,17 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
-  const { user, loading, signIn } = useAuth();
+  const { user, loading, signIn, needsUsernameSetup } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  if (!loading && user) return <Navigate to="/" replace />;
+  if (!loading && user) {
+    return (
+      <Navigate to={needsUsernameSetup ? "/onboarding" : "/"} replace />
+    );
+  }
 
   const onSubmit = async (e) => {
     e.preventDefault();

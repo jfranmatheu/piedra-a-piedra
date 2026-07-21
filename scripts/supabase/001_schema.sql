@@ -12,6 +12,8 @@ create table if not exists public.profiles (
   display_name text,
   avatar_url text,
   is_platform_admin boolean not null default false,
+  -- false hasta que el usuario elige username en onboarding (ver 006)
+  username_setup_done boolean not null default false,
   created_at timestamptz not null default now(),
   constraint profiles_username_key unique (username),
   constraint profiles_username_format check (username ~ '^[a-z0-9_]{3,32}$')
@@ -174,6 +176,10 @@ begin
   if length(base_username) < 3 then
     base_username := 'user' || substr(replace(new.id::text, '-', ''), 1, 8);
   end if;
+  if base_username in ('admin', 'root', 'system', 'support', 'moderator', 'api')
+     or base_username ~ '^(admin|root|system|mod|staff)' then
+    base_username := 'user' || substr(replace(new.id::text, '-', ''), 1, 10);
+  end if;
   base_username := left(base_username, 28);
   final_username := base_username;
 
@@ -182,12 +188,13 @@ begin
     final_username := base_username || n::text;
   end loop;
 
-  insert into public.profiles (id, username, email, display_name)
+  insert into public.profiles (id, username, email, display_name, username_setup_done)
   values (
     new.id,
     final_username,
     new.email,
-    coalesce(new.raw_user_meta_data->>'display_name', final_username)
+    coalesce(new.raw_user_meta_data->>'display_name', final_username),
+    false
   );
 
   -- marcar invite de plataforma como accepted

@@ -2,17 +2,21 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { supabaseConfig } from "./lib/supabase";
 import LoginPage from "./pages/LoginPage";
+import OnboardingPage from "./pages/OnboardingPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectWorkspace from "./pages/ProjectWorkspace";
 
 function RequireAuth({ children }) {
-  const { user, loading } = useAuth();
+  const { user, loading, needsUsernameSetup } = useAuth();
   if (loading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center text-dim">Cargando…</div>
+      <div className="flex min-h-dvh items-center justify-center text-dim">
+        Cargando…
+      </div>
     );
   }
   if (!user) return <Navigate to="/login" replace />;
+  if (needsUsernameSetup) return <Navigate to="/onboarding" replace />;
   return children;
 }
 
@@ -68,6 +72,7 @@ export default function App() {
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/onboarding" element={<OnboardingPage />} />
             <Route
               path="/"
               element={
