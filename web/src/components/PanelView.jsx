@@ -4,7 +4,6 @@ import { useApp } from "../context/AppContext";
 import { taskKey } from "../lib/utils";
 import { AssigneeChips, ProgressBar } from "./ui";
 import FilterBar from "./FilterBar";
-import ViewToggle from "./ViewToggle";
 import StoneEditModal from "./StoneEditModal";
 
 export default function PanelView() {
@@ -40,23 +39,10 @@ export default function PanelView() {
   const tasks = active ? filteredTasks(active) : [];
 
   return (
-    <div className="grid h-dvh grid-cols-1 overflow-hidden md:grid-cols-[280px_1fr]">
+    <div className="grid h-[calc(100dvh-2.75rem)] grid-cols-1 overflow-hidden md:grid-cols-[280px_1fr]">
       <aside className="flex flex-col border-b border-border bg-[rgba(10,10,16,0.92)] md:border-b-0 md:border-r">
-        <div className="border-b border-border p-4">
-          <div className="mb-2 font-mono text-[10px] uppercase tracking-wider text-accent">
-            🪨 Piedra a Piedra
-          </div>
-          <ViewToggle />
-          <div className="mt-3 text-sm font-bold">{model.title}</div>
-          <div className="mt-3">
-            <ProgressBar pct={stats.pct} />
-            <div className="mt-1 font-mono text-[10px] text-mute">
-              LVL {stats.level.level} · {stats.pct.toFixed(0)}%
-            </div>
-          </div>
-          <div className="mt-3 min-h-[120px]">
-            <FilterBar />
-          </div>
+        <div className="border-b border-border p-3">
+          <FilterBar />
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto p-2">
           {stones.map((s) => {

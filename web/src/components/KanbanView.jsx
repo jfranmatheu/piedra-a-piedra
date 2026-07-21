@@ -19,7 +19,6 @@ import { notify } from "../lib/toast";
 import { taskKey } from "../lib/utils";
 import { ProgressBar } from "./ui";
 import FilterBar from "./FilterBar";
-import ViewToggle from "./ViewToggle";
 import NewTaskModal from "./NewTaskModal";
 import StoneEditModal from "./StoneEditModal";
 import { CARD_W, KanbanCardFace, SortableKanbanCard } from "./KanbanCard";
@@ -120,6 +119,7 @@ export default function KanbanView() {
     setEditingStoneId,
     NEW_STONE_ID,
   } = useApp();
+  // stats still used for per-stone progress bars below
 
   const showDone = !filters.incompleteOnly;
   const showExpiry = !filters.showAll;
@@ -215,32 +215,10 @@ export default function KanbanView() {
   const activeData = activeId ? cardMap[activeId] : null;
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden">
-      <header className="shrink-0 border-b border-border bg-[rgba(10,10,16,0.95)] px-4 py-2.5 backdrop-blur-md">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-wrap items-center gap-3">
-            <span className="rounded-full bg-[#1a1a24] px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent">
-              🪨 Piedra a Piedra
-            </span>
-            <ViewToggle />
-            <span className="truncate text-sm font-bold tracking-tight">{model.title}</span>
-          </div>
-          <div className="min-w-[200px] rounded-xl border border-border bg-black/30 px-3 py-2">
-            <div className="mb-1 flex justify-between font-mono text-[11px]">
-              <span className="rounded bg-accent/15 px-1.5 py-0.5 text-accent">
-                LVL {stats.level.level}
-              </span>
-              <span className="text-dim">
-                {stats.earnedXp}/{stats.totalXp} XP · {stats.pct.toFixed(0)}%
-              </span>
-            </div>
-            <ProgressBar pct={stats.level.pct} />
-          </div>
-        </div>
-        <div className="min-h-[92px]">
-          <FilterBar />
-        </div>
-      </header>
+    <div className="flex h-[calc(100dvh-2.75rem)] flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-border bg-[rgba(10,10,16,0.95)] px-4 py-2 backdrop-blur-md">
+        <FilterBar />
+      </div>
 
       <main className="min-h-0 flex-1 overflow-auto p-4">
         <DndContext

@@ -7,6 +7,8 @@ import KanbanView from "../components/KanbanView";
 import TimelineView from "../components/TimelineView";
 import PanelView from "../components/PanelView";
 import ProjectSettingsModal from "../components/ProjectSettingsModal";
+import ViewToggle from "../components/ViewToggle";
+import { ProgressBar } from "../components/ui";
 import { useI18n } from "../i18n";
 import * as api from "../lib/api";
 import { notifyPromise } from "../lib/toast";
@@ -24,6 +26,7 @@ function WorkspaceInner() {
     projectId,
     toast,
     reload,
+    stats,
   } = useApp();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -61,21 +64,41 @@ function WorkspaceInner() {
 
   return (
     <>
-      {/* thin project bar above views */}
-      <div className="fixed left-0 right-0 top-0 z-[60] flex items-center justify-between gap-2 border-b border-border/80 bg-black/50 px-3 py-1.5 text-xs backdrop-blur-md">
+      {/* Top bar: nav + views + LVL/XP + actions */}
+      <div className="fixed left-0 right-0 top-0 z-[60] flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-border/80 bg-black/55 px-3 py-1.5 backdrop-blur-md">
         <Link
           to="/projects"
-          className="inline-flex items-center gap-1 text-mute hover:text-text"
+          className="inline-flex shrink-0 items-center gap-1 text-xs text-mute hover:text-text"
         >
           <ArrowLeft size={14} /> {t("common.projects")}
         </Link>
-        <span className="truncate font-semibold">{project?.name}</span>
-        <div className="flex items-center gap-1.5">
+
+        <ViewToggle />
+
+        <span className="min-w-0 flex-1 truncate text-center text-xs font-semibold sm:text-sm">
+          {project?.name}
+        </span>
+
+        {stats && (
+          <div className="flex min-w-[9.5rem] max-w-[14rem] shrink-0 flex-col gap-0.5 rounded-lg border border-border bg-black/40 px-2 py-1">
+            <div className="flex items-center justify-between gap-2 font-mono text-[10px]">
+              <span className="rounded bg-accent/15 px-1.5 py-0.5 font-semibold text-accent">
+                LVL {stats.level.level}
+              </span>
+              <span className="truncate text-dim">
+                {stats.earnedXp}/{stats.totalXp} XP · {stats.pct.toFixed(0)}%
+              </span>
+            </div>
+            <ProgressBar pct={stats.level.pct} className="h-1" />
+          </div>
+        )}
+
+        <div className="flex shrink-0 items-center gap-1.5">
           {canManage && (
             <button
               type="button"
               onClick={() => setInviteOpen(true)}
-              className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-mute hover:text-text"
+              className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs text-mute hover:text-text"
             >
               <UserPlus size={12} /> {t("common.invite")}
             </button>
@@ -83,14 +106,14 @@ function WorkspaceInner() {
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}
-            className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-mute hover:text-text"
+            className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs text-mute hover:text-text"
             title={t("workspace.settings")}
           >
             <Settings size={12} /> {t("workspace.settings")}
           </button>
         </div>
       </div>
-      <div className="pt-8">
+      <div className="pt-11 sm:pt-10">
         {viewMode === "timeline" && <TimelineView />}
         {viewMode === "sidebar" && <PanelView />}
         {viewMode === "kanban" && <KanbanView />}

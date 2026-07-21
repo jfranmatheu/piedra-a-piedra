@@ -10,9 +10,8 @@ import {
   toISODate,
 } from "../lib/dates";
 import { taskKey } from "../lib/utils";
-import { AssigneeChips, ProgressBar } from "./ui";
+import { AssigneeChips } from "./ui";
 import FilterBar from "./FilterBar";
-import ViewToggle from "./ViewToggle";
 import StoneEditModal from "./StoneEditModal";
 
 const LABEL_W = 260;
@@ -427,67 +426,42 @@ export default function TimelineView() {
   );
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden">
-      <header className="shrink-0 border-b border-border bg-[rgba(10,10,16,0.95)] px-4 py-3 backdrop-blur-md">
-        <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="mb-2 flex flex-wrap items-center gap-3">
-              <span className="rounded-full bg-accent/15 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent">
-                🪨 Piedra a Piedra
-              </span>
-              <ViewToggle />
-            </div>
-            <h1 className="truncate text-xl font-extrabold tracking-tight md:text-2xl">
-              {model.title}
-            </h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
+    <div className="flex h-[calc(100dvh-2.75rem)] flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-border bg-[rgba(10,10,16,0.95)] px-4 py-2.5 backdrop-blur-md">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setEditingStoneId(NEW_STONE_ID)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs font-semibold text-text hover:bg-accent/25"
+          >
+            <Plus size={14} /> Nueva piedra
+          </button>
+          <div className="flex items-center gap-1 rounded-xl border border-border bg-black/30 p-1">
             <button
               type="button"
-              onClick={() => setEditingStoneId(NEW_STONE_ID)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/15 px-3 py-2 text-xs font-semibold text-text hover:bg-accent/25"
+              onClick={zoomOut}
+              disabled={visibleDays >= MAX_VISIBLE}
+              className="grid h-8 w-8 place-items-center rounded-lg text-dim hover:bg-white/10 disabled:opacity-30"
+              title="Alejar (+3 días visibles)"
             >
-              <Plus size={14} /> Nueva piedra
+              <Minus size={16} />
             </button>
-            {/* Zoom controls */}
-            <div className="flex items-center gap-1 rounded-xl border border-border bg-black/30 p-1">
-              <button
-                type="button"
-                onClick={zoomOut}
-                disabled={visibleDays >= MAX_VISIBLE}
-                className="grid h-8 w-8 place-items-center rounded-lg text-dim hover:bg-white/10 disabled:opacity-30"
-                title="Alejar (+3 días visibles)"
-              >
-                <Minus size={16} />
-              </button>
-              <span className="flex min-w-[4.5rem] items-center justify-center gap-1 font-mono text-[11px] text-dim">
-                <ZoomIn size={12} />
-                {visibleDays}d
-              </span>
-              <button
-                type="button"
-                onClick={zoomIn}
-                disabled={visibleDays <= MIN_VISIBLE}
-                className="grid h-8 w-8 place-items-center rounded-lg text-dim hover:bg-white/10 disabled:opacity-30"
-                title="Acercar (−3 días visibles)"
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-            <div className="min-w-[180px] rounded-xl border border-border bg-black/30 px-3 py-2">
-              <div className="mb-1 flex justify-between font-mono text-[11px]">
-                <span className="rounded bg-accent/15 px-1.5 py-0.5 text-accent">
-                  LVL {stats.level.level}
-                </span>
-                <span className="text-dim">{stats.pct.toFixed(0)}%</span>
-              </div>
-              <ProgressBar pct={stats.level.pct} />
-            </div>
+            <span className="flex min-w-[4.5rem] items-center justify-center gap-1 font-mono text-[11px] text-dim">
+              <ZoomIn size={12} />
+              {visibleDays}d
+            </span>
+            <button
+              type="button"
+              onClick={zoomIn}
+              disabled={visibleDays <= MIN_VISIBLE}
+              className="grid h-8 w-8 place-items-center rounded-lg text-dim hover:bg-white/10 disabled:opacity-30"
+              title="Acercar (−3 días visibles)"
+            >
+              <Plus size={16} />
+            </button>
           </div>
         </div>
-        <div className="min-h-[88px]">
-          <FilterBar />
-        </div>
+        <FilterBar />
         <div className="mt-2 flex flex-wrap items-center gap-3 font-mono text-[11px] text-mute">
           <span>
             {toISODate(rangeStart)} → {toISODate(addDays(rangeStart, totalDays - 1))}
@@ -502,7 +476,7 @@ export default function TimelineView() {
             · Arrastra pastilla para mover · extremos para redimensionar
           </span>
         </div>
-      </header>
+      </div>
 
       <div ref={scrollerRef} className="min-h-0 flex-1 overflow-auto">
         <div
