@@ -79,10 +79,10 @@ export default function LandingPage() {
         </Link>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-6xl px-4 pb-24 sm:px-6">
+      <main className="relative z-10 mx-auto w-full min-w-0 max-w-6xl px-4 pb-24 sm:px-6">
         {/* hero asymmetric */}
-        <section className="grid items-center gap-10 pt-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 lg:pt-10">
-          <div className="relative">
+        <section className="grid w-full min-w-0 max-w-full items-center gap-10 pt-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 lg:pt-10">
+          <div className="relative min-w-0">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-accent/25 bg-accent/10 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent">
               <Sparkles size={12} /> Solo por invitación
             </div>
@@ -135,7 +135,10 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div id="preview" className="lg:translate-y-4">
+          <div
+            id="preview"
+            className="w-full min-w-0 max-w-full lg:translate-y-4"
+          >
             <LandingPreviewStage />
           </div>
         </section>

@@ -74,57 +74,63 @@ function useDemoBoard() {
 export function MiniKanban() {
   const { stones, toggle, stats } = useDemoBoard();
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-3 flex items-center justify-between px-1">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-accent">
+    <div className="flex h-full w-full min-w-0 max-w-full flex-col overflow-hidden">
+      <div className="mb-3 flex min-w-0 items-center justify-between gap-2 px-0.5">
+        <span className="truncate font-mono text-[10px] uppercase tracking-widest text-accent">
           Vista Kanban
         </span>
-        <span className="rounded-full bg-accent/15 px-2 py-0.5 font-mono text-[10px] text-accent">
+        <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 font-mono text-[10px] text-accent">
           LVL {stats.level} · {stats.pct}%
         </span>
       </div>
-      <div className="flex min-h-0 flex-1 gap-2 overflow-x-auto pb-1">
-        {stones.map((s) => (
-          <div
-            key={s.id}
-            className="flex w-[140px] shrink-0 flex-col rounded-xl border bg-black/40 p-2"
-            style={{ borderColor: `${s.color}44` }}
-          >
-            <div className="mb-2 flex items-center gap-1.5">
-              <span className="text-sm">{s.icon}</span>
-              <div className="min-w-0">
-                <div
-                  className="font-mono text-[9px] uppercase"
-                  style={{ color: s.color }}
-                >
-                  P{s.n}
+      {/* Scroll horizontal SOLO aquí — no ensancha la página */}
+      <div
+        className="min-h-0 w-full min-w-0 max-w-full flex-1 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch]"
+        style={{ touchAction: "pan-x" }}
+      >
+        <div className="flex w-max max-w-none gap-2 pr-1">
+          {stones.map((s) => (
+            <div
+              key={s.id}
+              className="flex w-[118px] shrink-0 flex-col rounded-xl border bg-black/40 p-2 sm:w-[132px]"
+              style={{ borderColor: `${s.color}44` }}
+            >
+              <div className="mb-2 flex min-w-0 items-center gap-1.5">
+                <span className="shrink-0 text-sm">{s.icon}</span>
+                <div className="min-w-0">
+                  <div
+                    className="font-mono text-[9px] uppercase"
+                    style={{ color: s.color }}
+                  >
+                    P{s.n}
+                  </div>
+                  <div className="truncate text-[11px] font-bold">{s.title}</div>
                 </div>
-                <div className="truncate text-[11px] font-bold">{s.title}</div>
+              </div>
+              <div className="flex flex-1 flex-col gap-1.5">
+                {s.tasks.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => toggle(s.id, t.id)}
+                    className={`rounded-lg border border-white/5 bg-white/[0.03] px-2 py-1.5 text-left text-[10px] transition hover:border-white/15 ${
+                      t.done ? "opacity-55 line-through" : ""
+                    }`}
+                  >
+                    <span className="mr-1">{t.done ? "✓" : "○"}</span>
+                    <span className="break-words">{t.title}</span>
+                    <span className="mt-0.5 block font-mono text-[9px] text-amber-400/80">
+                      +{t.xp} XP
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
-            <div className="flex flex-1 flex-col gap-1.5">
-              {s.tasks.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => toggle(s.id, t.id)}
-                  className={`rounded-lg border border-white/5 bg-white/[0.03] px-2 py-1.5 text-left text-[10px] transition hover:border-white/15 ${
-                    t.done ? "opacity-55 line-through" : ""
-                  }`}
-                >
-                  <span className="mr-1">{t.done ? "✓" : "○"}</span>
-                  {t.title}
-                  <span className="mt-0.5 block font-mono text-[9px] text-amber-400/80">
-                    +{t.xp} XP
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
       <p className="mt-2 text-center text-[10px] text-mute">
-        Clic en una tarjeta para marcar hecha / pendiente
+        Desliza horizontalmente · toca una tarjeta
       </p>
     </div>
   );
@@ -134,16 +140,16 @@ export function MiniTimeline() {
   const { stones, toggle, stats } = useDemoBoard();
   const days = ["L", "M", "X", "J", "V", "S", "D"];
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-sky-400">
+    <div className="flex h-full w-full min-w-0 max-w-full flex-col overflow-hidden">
+      <div className="mb-3 flex min-w-0 items-center justify-between gap-2">
+        <span className="truncate font-mono text-[10px] uppercase tracking-widest text-sky-400">
           Vista Timeline
         </span>
-        <span className="font-mono text-[10px] text-mute">
+        <span className="shrink-0 font-mono text-[10px] text-mute">
           {stats.done}/{stats.total} · {stats.xp} XP
         </span>
       </div>
-      <div className="mb-2 grid grid-cols-7 gap-0.5">
+      <div className="mb-2 grid w-full min-w-0 grid-cols-7 gap-0.5">
         {days.map((d) => (
           <div
             key={d}
@@ -153,13 +159,13 @@ export function MiniTimeline() {
           </div>
         ))}
       </div>
-      <div className="space-y-2">
+      <div className="min-w-0 space-y-2">
         {stones.map((s, si) => (
-          <div key={s.id} className="flex items-center gap-2">
-            <div className="w-16 shrink-0 truncate text-[10px] font-semibold">
+          <div key={s.id} className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+            <div className="w-12 shrink-0 truncate text-[10px] font-semibold sm:w-16">
               {s.icon} {s.title}
             </div>
-            <div className="relative h-7 flex-1 rounded-md bg-white/[0.03]">
+            <div className="relative h-7 min-w-0 flex-1 rounded-md bg-white/[0.03]">
               <div
                 className="absolute top-1 bottom-1 rounded-md opacity-80"
                 style={{
@@ -196,8 +202,8 @@ export function MiniPanel() {
   const [active, setActive] = useState(stones[0].id);
   const stone = stones.find((s) => s.id === active) || stones[0];
   return (
-    <div className="flex h-full gap-2">
-      <div className="w-[38%] space-y-1 overflow-y-auto border-r border-white/5 pr-2">
+    <div className="flex h-full w-full min-w-0 max-w-full gap-2 overflow-hidden">
+      <div className="w-[34%] min-w-0 shrink-0 space-y-1 overflow-y-auto border-r border-white/5 pr-1.5 sm:w-[38%] sm:pr-2">
         <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-violet-400">
           Panel
         </div>
@@ -267,12 +273,12 @@ export function MiniPanel() {
 export function LandingPreviewStage() {
   const [mode, setMode] = useState("kanban");
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#12121c] via-[#0c0c14] to-[#15101a] p-4 shadow-2xl shadow-amber-500/5 sm:p-5">
+    <div className="relative w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#12121c] via-[#0c0c14] to-[#15101a] p-3 shadow-2xl shadow-amber-500/5 sm:p-5">
       <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-accent/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-violet-500/15 blur-3xl" />
 
-      <div className="relative mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex gap-1 rounded-full border border-white/10 bg-black/40 p-1">
+      <div className="relative mb-3 flex min-w-0 flex-wrap items-center justify-between gap-2 sm:mb-4">
+        <div className="flex max-w-full gap-1 overflow-x-auto rounded-full border border-white/10 bg-black/40 p-1">
           {[
             { id: "kanban", label: "Kanban" },
             { id: "timeline", label: "Timeline" },
@@ -282,7 +288,7 @@ export function LandingPreviewStage() {
               key={m.id}
               type="button"
               onClick={() => setMode(m.id)}
-              className={`rounded-full px-3 py-1 text-[11px] font-semibold transition ${
+              className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold transition sm:px-3 ${
                 mode === m.id
                   ? "bg-accent/25 text-accent"
                   : "text-mute hover:text-dim"
@@ -292,10 +298,12 @@ export function LandingPreviewStage() {
             </button>
           ))}
         </div>
-        <span className="font-mono text-[10px] text-mute">demo interactiva</span>
+        <span className="hidden font-mono text-[10px] text-mute sm:inline">
+          demo interactiva
+        </span>
       </div>
 
-      <div className="relative min-h-[260px] sm:min-h-[280px]">
+      <div className="relative min-h-[240px] w-full min-w-0 max-w-full overflow-hidden sm:min-h-[280px]">
         {mode === "kanban" && <MiniKanban />}
         {mode === "timeline" && <MiniTimeline />}
         {mode === "panel" && <MiniPanel />}
