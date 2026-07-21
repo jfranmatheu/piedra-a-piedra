@@ -7,10 +7,12 @@ import KanbanView from "../components/KanbanView";
 import TimelineView from "../components/TimelineView";
 import PanelView from "../components/PanelView";
 import ProjectSettingsModal from "../components/ProjectSettingsModal";
+import { useI18n } from "../i18n";
 import * as api from "../lib/api";
 
 function WorkspaceInner() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const {
     loading,
     bootError,
@@ -36,7 +38,7 @@ function WorkspaceInner() {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-3">
         <div className="animate-bounce text-4xl">🪨</div>
-        <p className="text-dim">Cargando proyecto…</p>
+        <p className="text-dim">{t("workspace.loading")}</p>
       </div>
     );
   }
@@ -44,10 +46,12 @@ function WorkspaceInner() {
   if (bootError) {
     return (
       <div className="mx-auto mt-20 max-w-md rounded-2xl border border-rose-500/30 bg-rose-500/10 p-8 text-center">
-        <h2 className="mb-2 text-lg font-bold text-rose-300">No se pudo cargar</h2>
+        <h2 className="mb-2 text-lg font-bold text-rose-300">
+          {t("workspace.loadFailed")}
+        </h2>
         <p className="text-dim">{bootError}</p>
         <Link to="/projects" className="mt-4 inline-block text-sm text-accent">
-          ← Volver a proyectos
+          {t("workspace.backProjects")}
         </Link>
       </div>
     );
@@ -61,7 +65,7 @@ function WorkspaceInner() {
           to="/projects"
           className="inline-flex items-center gap-1 text-mute hover:text-text"
         >
-          <ArrowLeft size={14} /> Proyectos
+          <ArrowLeft size={14} /> {t("common.projects")}
         </Link>
         <span className="truncate font-semibold">{project?.name}</span>
         <div className="flex items-center gap-1.5">
@@ -71,16 +75,16 @@ function WorkspaceInner() {
               onClick={() => setInviteOpen(true)}
               className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-mute hover:text-text"
             >
-              <UserPlus size={12} /> Invitar
+              <UserPlus size={12} /> {t("common.invite")}
             </button>
           )}
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}
             className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-mute hover:text-text"
-            title="Ajustes del proyecto"
+            title={t("workspace.settings")}
           >
-            <Settings size={12} /> Ajustes
+            <Settings size={12} /> {t("workspace.settings")}
           </button>
         </div>
       </div>
@@ -117,9 +121,9 @@ function WorkspaceInner() {
               }
             }}
           >
-            <h3 className="mb-3 font-bold">Invitar al proyecto</h3>
+            <h3 className="mb-3 font-bold">{t("workspace.inviteProject")}</h3>
             <p className="mb-3 text-xs text-mute">
-              Por username de la plataforma (no email). Miembros:{" "}
+              {t("workspace.inviteByUsername")}{" "}
               {members.map((m) => `@${m.username}`).join(", ") || "—"}
             </p>
             <input
@@ -135,13 +139,13 @@ function WorkspaceInner() {
                 onClick={() => setInviteOpen(false)}
                 className="rounded-xl px-3 py-2 text-sm text-dim"
               >
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button
                 type="submit"
                 className="rounded-xl bg-accent/20 px-3 py-2 text-sm font-semibold text-accent"
               >
-                Invitar
+                {t("common.invite")}
               </button>
             </div>
           </form>

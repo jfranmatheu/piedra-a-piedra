@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { useI18n } from "./i18n";
 import { supabaseConfig } from "./lib/supabase";
 import JoinPage from "./pages/JoinPage";
 import LandingPage from "./pages/LandingPage";
@@ -9,10 +10,11 @@ import ProjectWorkspace from "./pages/ProjectWorkspace";
 
 function RequireAuth({ children }) {
   const { user, loading, needsUsernameSetup } = useAuth();
+  const { t } = useI18n();
   if (loading) {
     return (
       <div className="flex min-h-dvh items-center justify-center text-dim">
-        Cargando…
+        {t("common.loading")}
       </div>
     );
   }
@@ -22,15 +24,14 @@ function RequireAuth({ children }) {
 }
 
 function RequireConfig({ children }) {
+  const { t } = useI18n();
   if (!supabaseConfig.isConfigured) {
     return (
       <div className="mx-auto mt-20 max-w-lg rounded-2xl border border-amber-500/30 bg-amber-500/10 p-8 text-left">
         <h1 className="mb-2 text-center text-xl font-bold text-amber-200">
-          Supabase no configurado en este build
+          {t("config.missingTitle")}
         </h1>
-        <p className="mb-4 text-sm text-dim">
-          Define <code className="text-text">VITE_*</code> en Vercel y haz Redeploy.
-        </p>
+        <p className="mb-4 text-sm text-dim">{t("config.missingBody")}</p>
       </div>
     );
   }

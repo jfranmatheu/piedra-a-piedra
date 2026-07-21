@@ -1,11 +1,13 @@
 import { Bell, LogOut, Plus, Settings, Shield, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import * as api from "../lib/api";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 import PlatformInviteModal from "../components/PlatformInviteModal";
 import ProfileSettingsModal from "../components/ProfileSettingsModal";
 import ProjectSettingsModal from "../components/ProjectSettingsModal";
+import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../i18n";
+import * as api from "../lib/api";
 
 export default function ProjectsPage() {
   const {
@@ -15,6 +17,7 @@ export default function ProjectsPage() {
     invitesRemaining,
     signOut,
   } = useAuth();
+  const { t } = useI18n();
   const [projects, setProjects] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -81,51 +84,52 @@ export default function ProjectsPage() {
               🪨 Piedra a Piedra
             </Link>
             <div className="text-sm text-dim">
-              Hola,{" "}
+              {t("projects.hello")}{" "}
               <button
                 type="button"
                 onClick={() => setProfileOpen(true)}
                 className="font-semibold text-text underline-offset-2 hover:underline"
-                title="Editar username"
+                title={t("projects.editUsername")}
               >
                 @{profile?.username}
               </button>
               {isPlatformAdmin && (
                 <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent">
-                  <Shield size={10} /> admin
+                  <Shield size={10} /> {t("common.admin")}
                 </span>
               )}
               {!isPlatformAdmin && invitesRemaining > 0 && (
                 <span className="ml-2 font-mono text-[10px] text-mute">
-                  {invitesRemaining} inv.
+                  {invitesRemaining} {t("projects.invShort")}
                 </span>
               )}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <LanguageSwitcher />
             {showInviteBtn && (
               <button
                 type="button"
                 onClick={() => setInviteOpen(true)}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-accent/35 bg-accent/15 px-3 py-2 text-sm font-semibold text-text hover:bg-accent/25"
               >
-                <UserPlus size={14} /> Invitaciones
+                <UserPlus size={14} /> {t("common.invitations")}
               </button>
             )}
             <button
               type="button"
               onClick={() => setProfileOpen(true)}
               className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-sm text-dim hover:bg-white/5"
-              title="Perfil y username"
+              title={t("common.profile")}
             >
-              <Settings size={14} /> Perfil
+              <Settings size={14} /> {t("common.profile")}
             </button>
             <button
               type="button"
               onClick={() => signOut()}
               className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-sm text-dim hover:bg-white/5"
             >
-              <LogOut size={14} /> Salir
+              <LogOut size={14} /> {t("common.logout")}
             </button>
           </div>
         </div>
@@ -141,7 +145,7 @@ export default function ProjectsPage() {
         {pendingInvites.length > 0 && (
           <section className="rounded-2xl border border-border bg-elev p-5">
             <h2 className="mb-3 flex items-center gap-2 font-bold">
-              <Bell size={16} className="text-accent" /> Invitaciones a proyectos
+              <Bell size={16} className="text-accent" /> {t("projects.projectInvites")}
             </h2>
             <ul className="space-y-2">
               {pendingInvites.map((n) => (
@@ -162,7 +166,7 @@ export default function ProjectsPage() {
                         await load();
                       }}
                     >
-                      Aceptar
+                      {t("projects.accept")}
                     </button>
                     <button
                       type="button"
@@ -172,7 +176,7 @@ export default function ProjectsPage() {
                         await load();
                       }}
                     >
-                      Rechazar
+                      {t("projects.reject")}
                     </button>
                   </div>
                 </li>
@@ -183,21 +187,21 @@ export default function ProjectsPage() {
 
         <section>
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold">Tus proyectos</h2>
+            <h2 className="text-lg font-bold">{t("projects.yourProjects")}</h2>
             <button
               type="button"
               onClick={() => setShowCreate(true)}
               className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/20 px-3 py-2 text-sm font-semibold"
             >
-              <Plus size={16} /> Nuevo
+              <Plus size={16} /> {t("projects.new")}
             </button>
           </div>
 
           {loading ? (
-            <p className="text-dim">Cargando…</p>
+            <p className="text-dim">{t("common.loading")}</p>
           ) : projects.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border p-10 text-center text-dim">
-              Aún no tienes proyectos. Crea uno o acepta una invitación.
+              {t("projects.empty")}
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -224,7 +228,7 @@ export default function ProjectsPage() {
                   </Link>
                   <button
                     type="button"
-                    title="Gestionar proyecto"
+                    title={t("projects.manageProject")}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -246,9 +250,9 @@ export default function ProjectsPage() {
               onSubmit={create}
               className="w-full max-w-md rounded-2xl border border-border bg-elev p-6"
             >
-              <h3 className="mb-4 text-lg font-bold">Nuevo proyecto</h3>
+              <h3 className="mb-4 text-lg font-bold">{t("projects.newProject")}</h3>
               <label className="mb-3 block text-xs text-mute">
-                Nombre
+                {t("common.name")}
                 <input
                   required
                   value={name}
@@ -257,7 +261,7 @@ export default function ProjectsPage() {
                 />
               </label>
               <label className="mb-4 block text-xs text-mute">
-                Fecha de inicio
+                {t("common.startDate")}
                 <input
                   type="date"
                   value={startDate}
@@ -271,13 +275,13 @@ export default function ProjectsPage() {
                   onClick={() => setShowCreate(false)}
                   className="rounded-xl px-3 py-2 text-sm text-dim"
                 >
-                  Cancelar
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="submit"
                   className="rounded-xl bg-accent/20 px-3 py-2 text-sm font-semibold text-accent"
                 >
-                  Crear
+                  {t("common.create")}
                 </button>
               </div>
             </form>

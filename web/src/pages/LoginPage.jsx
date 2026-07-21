@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../i18n";
 
 export default function LoginPage() {
   const { user, loading, signIn, needsUsernameSetup } = useAuth();
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -22,7 +25,7 @@ export default function LoginPage() {
     try {
       await signIn(email.trim(), password);
     } catch (err) {
-      setError(err.message || "Error al iniciar sesión");
+      setError(err.message || t("login.errorGeneric"));
     } finally {
       setBusy(false);
     }
@@ -30,16 +33,21 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-bg px-4">
+      <div className="absolute right-4 top-4">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-md rounded-2xl border border-border bg-elev p-8 shadow-2xl">
         <div className="mb-6 text-center">
           <div className="mb-2 text-3xl">🪨</div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Piedra a Piedra</h1>
-          <p className="mt-1 text-sm text-dim">Acceso por invitación</p>
+          <h1 className="text-2xl font-extrabold tracking-tight">
+            {t("login.title")}
+          </h1>
+          <p className="mt-1 text-sm text-dim">{t("login.subtitle")}</p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-3">
           <label className="block text-xs font-medium text-mute">
-            Email
+            {t("common.email")}
             <input
               type="email"
               required
@@ -50,7 +58,7 @@ export default function LoginPage() {
             />
           </label>
           <label className="block text-xs font-medium text-mute">
-            Contraseña
+            {t("common.password")}
             <input
               type="password"
               required
@@ -70,13 +78,17 @@ export default function LoginPage() {
             disabled={busy}
             className="w-full rounded-xl border border-accent/40 bg-accent/20 py-2.5 text-sm font-bold text-text hover:bg-accent/30 disabled:opacity-50"
           >
-            {busy ? "Entrando…" : "Entrar"}
+            {busy ? t("login.entering") : t("login.enter")}
           </button>
         </form>
 
         <p className="mt-6 text-center text-[11px] text-mute">
-          No hay registro público. Si te invitaron, usa el enlace del email para
-          crear username y contraseña.
+          {t("login.footer")}
+        </p>
+        <p className="mt-3 text-center text-[11px]">
+          <Link to="/" className="text-dim hover:text-text">
+            ← Piedra a Piedra
+          </Link>
         </p>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useI18n } from "../../i18n";
 
 const DEMO_STONES = [
   {
@@ -73,11 +74,12 @@ function useDemoBoard() {
 
 export function MiniKanban() {
   const { stones, toggle, stats } = useDemoBoard();
+  const { t } = useI18n();
   return (
     <div className="flex h-full w-full min-w-0 max-w-full flex-col overflow-hidden">
       <div className="mb-3 flex min-w-0 items-center justify-between gap-2 px-0.5">
         <span className="truncate font-mono text-[10px] uppercase tracking-widest text-accent">
-          Vista Kanban
+          {t("landing.previewKanban")}
         </span>
         <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 font-mono text-[10px] text-accent">
           LVL {stats.level} · {stats.pct}%
@@ -130,7 +132,7 @@ export function MiniKanban() {
         </div>
       </div>
       <p className="mt-2 text-center text-[10px] text-mute">
-        Desliza horizontalmente · toca una tarjeta
+        {t("landing.kanbanHint")}
       </p>
     </div>
   );
@@ -138,12 +140,16 @@ export function MiniKanban() {
 
 export function MiniTimeline() {
   const { stones, toggle, stats } = useDemoBoard();
-  const days = ["L", "M", "X", "J", "V", "S", "D"];
+  const { t, lang } = useI18n();
+  const days =
+    lang === "es"
+      ? ["L", "M", "X", "J", "V", "S", "D"]
+      : ["M", "T", "W", "T", "F", "S", "S"];
   return (
     <div className="flex h-full w-full min-w-0 max-w-full flex-col overflow-hidden">
       <div className="mb-3 flex min-w-0 items-center justify-between gap-2">
         <span className="truncate font-mono text-[10px] uppercase tracking-widest text-sky-400">
-          Vista Timeline
+          {t("landing.previewTimeline")}
         </span>
         <span className="shrink-0 font-mono text-[10px] text-mute">
           {stats.done}/{stats.total} · {stats.xp} XP
@@ -191,7 +197,7 @@ export function MiniTimeline() {
         ))}
       </div>
       <p className="mt-3 text-center text-[10px] text-mute">
-        Clic en los puntos para completar hitos
+        {t("landing.timelineHint")}
       </p>
     </div>
   );
@@ -199,13 +205,14 @@ export function MiniTimeline() {
 
 export function MiniPanel() {
   const { stones, toggle, stats } = useDemoBoard();
+  const { t } = useI18n();
   const [active, setActive] = useState(stones[0].id);
   const stone = stones.find((s) => s.id === active) || stones[0];
   return (
     <div className="flex h-full w-full min-w-0 max-w-full gap-2 overflow-hidden">
       <div className="w-[34%] min-w-0 shrink-0 space-y-1 overflow-y-auto border-r border-white/5 pr-1.5 sm:w-[38%] sm:pr-2">
         <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-violet-400">
-          Panel
+          {t("landing.previewPanel")}
         </div>
         {stones.map((s) => (
           <button
@@ -272,6 +279,7 @@ export function MiniPanel() {
 
 export function LandingPreviewStage() {
   const [mode, setMode] = useState("kanban");
+  const { t } = useI18n();
   return (
     <div className="relative w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#12121c] via-[#0c0c14] to-[#15101a] p-3 shadow-2xl shadow-amber-500/5 sm:p-5">
       <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-accent/20 blur-3xl" />
@@ -280,9 +288,9 @@ export function LandingPreviewStage() {
       <div className="relative mb-3 flex min-w-0 flex-wrap items-center justify-between gap-2 sm:mb-4">
         <div className="flex max-w-full gap-1 overflow-x-auto rounded-full border border-white/10 bg-black/40 p-1">
           {[
-            { id: "kanban", label: "Kanban" },
-            { id: "timeline", label: "Timeline" },
-            { id: "panel", label: "Panel" },
+            { id: "kanban", label: t("views.kanban") },
+            { id: "timeline", label: t("views.timeline") },
+            { id: "panel", label: t("views.panel") },
           ].map((m) => (
             <button
               key={m.id}
@@ -299,7 +307,7 @@ export function LandingPreviewStage() {
           ))}
         </div>
         <span className="hidden font-mono text-[10px] text-mute sm:inline">
-          demo interactiva
+          {t("landing.demoInteractive")}
         </span>
       </div>
 

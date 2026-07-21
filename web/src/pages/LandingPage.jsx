@@ -8,12 +8,15 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 import { LandingPreviewStage } from "../components/landing/LandingPreviews";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../i18n";
 import * as api from "../lib/api";
 
 export default function LandingPage() {
   const { user, loading, needsUsernameSetup } = useAuth();
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [waitMsg, setWaitMsg] = useState(null);
   const [waitErr, setWaitErr] = useState(null);
@@ -31,7 +34,7 @@ export default function LandingPage() {
     setBusy(true);
     try {
       const res = await api.joinWaitlist(email.trim());
-      setWaitMsg(res.message || "¡Apuntado!");
+      setWaitMsg(res.message || "OK");
       setEmail("");
     } catch (err) {
       setWaitErr(err.message);
@@ -42,7 +45,6 @@ export default function LandingPage() {
 
   return (
     <div className="relative min-h-dvh overflow-x-hidden bg-bg text-text">
-      {/* ambient */}
       <div className="pointer-events-none fixed inset-0">
         <div className="absolute left-1/2 top-0 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-accent/10 blur-[100px]" />
         <div className="absolute bottom-0 right-0 h-[300px] w-[400px] rounded-full bg-violet-600/10 blur-[90px]" />
@@ -56,49 +58,48 @@ export default function LandingPage() {
         />
       </div>
 
-      {/* header */}
-      <header className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
-        <div className="flex items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-xl border border-accent/30 bg-accent/15 text-lg">
+      <header className="relative z-20 mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-5 sm:px-6">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-accent/30 bg-accent/15 text-lg">
             🪨
           </span>
-          <div>
-            <div className="text-sm font-extrabold tracking-tight">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-extrabold tracking-tight">
               Piedra a Piedra
             </div>
             <div className="font-mono text-[10px] uppercase tracking-widest text-mute">
-              roadmap · XP · equipo
+              {t("landing.tagline")}
             </div>
           </div>
         </div>
-        <Link
-          to="/login"
-          className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs font-semibold text-dim transition hover:border-white/20 hover:text-text"
-        >
-          Iniciar sesión
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <LanguageSwitcher />
+          <Link
+            to="/login"
+            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-dim transition hover:border-white/20 hover:text-text sm:px-4"
+          >
+            {t("common.login")}
+          </Link>
+        </div>
       </header>
 
       <main className="relative z-10 mx-auto w-full min-w-0 max-w-6xl px-4 pb-24 sm:px-6">
-        {/* hero asymmetric */}
         <section className="grid w-full min-w-0 max-w-full items-center gap-10 pt-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 lg:pt-10">
           <div className="relative min-w-0">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-accent/25 bg-accent/10 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent">
-              <Sparkles size={12} /> Solo por invitación
+              <Sparkles size={12} /> {t("landing.inviteOnly")}
             </div>
             <h1 className="text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl lg:text-[3.25rem]">
-              Convierte el roadmap
+              {t("landing.heroTitle1")}
               <br />
-              en una{" "}
+              {t("landing.heroTitle2")}{" "}
               <span className="bg-gradient-to-r from-accent via-amber-200 to-orange-400 bg-clip-text text-transparent">
-                partida
+                {t("landing.heroTitle3")}
               </span>{" "}
-              con tu equipo.
+              {t("landing.heroTitle4")}
             </h1>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-dim sm:text-lg">
-              Piedras (milestones), tareas con XP, Kanban, Timeline y Panel.
-              Invita por <span className="text-text">@username</span> — el email
-              se queda privado. Gamificado, multi‑proyecto, en la nube.
+              {t("landing.heroBody")}
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -106,21 +107,21 @@ export default function LandingPage() {
                 href="#waitlist"
                 className="inline-flex items-center gap-2 rounded-2xl border border-accent/40 bg-accent/20 px-5 py-3 text-sm font-bold text-text shadow-lg shadow-amber-500/10 transition hover:bg-accent/30"
               >
-                Pedir invitación <ArrowRight size={16} />
+                {t("landing.ctaWaitlist")} <ArrowRight size={16} />
               </a>
               <a
                 href="#preview"
                 className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold text-dim hover:border-white/20 hover:text-text"
               >
-                Ver preview
+                {t("landing.ctaPreview")}
               </a>
             </div>
 
-            <div className="mt-10 grid grid-cols-3 gap-3 max-w-md">
+            <div className="mt-10 grid max-w-md grid-cols-3 gap-3">
               {[
-                { n: "LVL↑", l: "XP al completar" },
-                { n: "@", l: "Invites sin email" },
-                { n: "3", l: "Vistas del board" },
+                { n: "LVL↑", l: t("landing.statXp") },
+                { n: "@", l: t("landing.statInvites") },
+                { n: "3", l: t("landing.statViews") },
               ].map((s) => (
                 <div
                   key={s.l}
@@ -135,36 +136,32 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div
-            id="preview"
-            className="w-full min-w-0 max-w-full lg:translate-y-4"
-          >
+          <div id="preview" className="w-full min-w-0 max-w-full lg:translate-y-4">
             <LandingPreviewStage />
           </div>
         </section>
 
-        {/* features bento */}
         <section className="mt-20 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
               icon: <Layers size={18} className="text-accent" />,
-              t: "Piedra a piedra",
-              d: "Milestones con color, fechas y tareas anidadas. Progreso visual al instante.",
+              t: t("landing.featStones"),
+              d: t("landing.featStonesBody"),
             },
             {
               icon: <Gamepad2 size={18} className="text-emerald-400" />,
-              t: "Gamificación real",
-              d: "XP, niveles y recompensas al cerrar tareas. El roadmap se siente vivo.",
+              t: t("landing.featGame"),
+              d: t("landing.featGameBody"),
             },
             {
               icon: <Users size={18} className="text-sky-400" />,
-              t: "Equipo privado",
-              d: "Invita por @username. Roles owner / admin / member y ownership transferible.",
+              t: t("landing.featTeam"),
+              d: t("landing.featTeamBody"),
             },
             {
               icon: <Crown size={18} className="text-violet-400" />,
-              t: "Multi‑proyecto",
-              d: "Crea boards, gestiona miembros y sal o borra con control de peligro.",
+              t: t("landing.featMulti"),
+              d: t("landing.featMultiBody"),
             },
           ].map((f) => (
             <article
@@ -180,7 +177,6 @@ export default function LandingPage() {
           ))}
         </section>
 
-        {/* waitlist */}
         <section
           id="waitlist"
           className="mt-20 overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-elev via-[#12101a] to-[#0a0a12] p-8 sm:p-10"
@@ -188,18 +184,15 @@ export default function LandingPage() {
           <div className="grid items-center gap-8 lg:grid-cols-[1fr_1.1fr]">
             <div>
               <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-                Únete a la lista de espera
+                {t("landing.waitTitle")}
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-dim sm:text-base">
-                Deja tu email. El admin de la plataforma invita por{" "}
-                <strong className="text-text">orden de llegada</strong>, en
-                lotes, cuando haya hueco. Sin spam: solo el mail de invitación
-                de Supabase cuando te toque.
+                {t("landing.waitBody")}
               </p>
               <ul className="mt-4 space-y-1.5 text-xs text-mute">
-                <li>· Acceso invite‑only (sin registro público)</li>
-                <li>· Tú eliges @username y contraseña en el alta</li>
-                <li>· Puedes rechazar y se borra tu rastro en Auth</li>
+                <li>{t("landing.waitBullet1")}</li>
+                <li>{t("landing.waitBullet2")}</li>
+                <li>{t("landing.waitBullet3")}</li>
               </ul>
             </div>
             <form
@@ -207,13 +200,13 @@ export default function LandingPage() {
               className="rounded-2xl border border-white/10 bg-black/35 p-5 sm:p-6"
             >
               <label className="block text-xs font-medium text-mute">
-                Email
+                {t("common.email")}
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu@email.com"
+                  placeholder="you@email.com"
                   className="mt-1.5 w-full rounded-xl border border-border bg-black/50 px-4 py-3 text-sm outline-none focus:border-accent/50"
                 />
               </label>
@@ -232,12 +225,15 @@ export default function LandingPage() {
                 disabled={busy}
                 className="mt-4 w-full rounded-xl border border-accent/40 bg-accent/25 py-3 text-sm font-bold hover:bg-accent/35 disabled:opacity-50"
               >
-                {busy ? "Enviando…" : "Apuntarme a la lista"}
+                {busy ? t("common.sending") : t("landing.waitSubmit")}
               </button>
               <p className="mt-3 text-center text-[11px] text-mute">
-                ¿Ya te invitaron?{" "}
-                <Link to="/login" className="text-dim underline-offset-2 hover:underline">
-                  Inicia sesión
+                {t("landing.waitAlready")}{" "}
+                <Link
+                  to="/login"
+                  className="text-dim underline-offset-2 hover:underline"
+                >
+                  {t("common.login")}
                 </Link>
               </p>
             </form>
@@ -245,10 +241,13 @@ export default function LandingPage() {
         </section>
 
         <footer className="mt-16 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-8 text-[11px] text-mute">
-          <span>🪨 Piedra a Piedra · invite‑only</span>
-          <Link to="/login" className="hover:text-dim">
-            Acceso miembros
-          </Link>
+          <span>🪨 {t("landing.footer")}</span>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <Link to="/login" className="hover:text-dim">
+              {t("common.membersAccess")}
+            </Link>
+          </div>
         </footer>
       </main>
     </div>

@@ -1,13 +1,8 @@
-import { ListOrdered, Mail, Shield, UserPlus, X } from "lucide-react";
+import { ListOrdered, Mail, Shield, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../i18n";
 import * as api from "../lib/api";
-
-const TABS = {
-  invite: "Invitar",
-  quota: "Asignar cupo",
-  waitlist: "Lista de espera",
-};
 
 /**
  * Modal de invitaciones a la plataforma (header).
@@ -20,6 +15,7 @@ export default function PlatformInviteModal({ onClose }) {
     invitesRemaining,
     refreshProfile,
   } = useAuth();
+  const { t } = useI18n();
 
   const [tab, setTab] = useState("invite");
   const [inviteEmail, setInviteEmail] = useState("");
@@ -65,11 +61,11 @@ export default function PlatformInviteModal({ onClose }) {
       );
       const grant = res.grantQuota ?? inviteGrantQuota;
       setInviteMsg(
-        `Enviado a ${inviteEmail} (cupo del invitado: ${grant})` +
+        t("platformInvite.sent", { email: inviteEmail, grant }) +
           (res.unlimited
             ? ""
             : res.invitesRemaining != null
-              ? ` · Te quedan ${res.invitesRemaining}`
+              ? t("platformInvite.left", { n: res.invitesRemaining })
               : "")
       );
       setInviteEmail("");
@@ -86,7 +82,7 @@ export default function PlatformInviteModal({ onClose }) {
     setQuotaMsg(null);
     const raw = quotaTarget.trim();
     if (!raw) {
-      setQuotaMsg("Indica email o @username");
+      setQuotaMsg(t("platformInvite.indicateEmailUser"));
       return;
     }
     const isEmail = raw.includes("@") && !raw.startsWith("@");
@@ -100,8 +96,13 @@ export default function PlatformInviteModal({ onClose }) {
         session.access_token
       );
       setQuotaMsg(
-        `@${res.user?.username || raw} → ${res.user?.platform_invites_remaining} invitaciones` +
-          (res.previousQuota != null ? ` (antes ${res.previousQuota})` : "")
+        t("platformInvite.quotaSet", {
+          user: res.user?.username || raw,
+          n: res.user?.platform_invites_remaining,
+        }) +
+          (res.previousQuota != null
+            ? t("platformInvite.before", { n: res.previousQuota })
+            : "")
       );
       setQuotaTarget("");
     } catch (err) {
@@ -125,9 +126,14 @@ export default function PlatformInviteModal({ onClose }) {
       );
       const fails = (res.results || []).filter((r) => !r.ok);
       setBatchMsg(
-        `Invitados ${res.invited}/${res.requested}` +
+        t("platformInvite.batchResult", {
+          ok: res.invited,
+          req: res.requested,
+        }) +
           (fails.length
-            ? `. Fallos: ${fails.map((f) => f.email).join(", ")}`
+            ? t("platformInvite.fails", {
+                list: fails.map((f) => f.email).join(", "),
+              })
             : "")
       );
       await loadWaitlist();
@@ -142,6 +148,11 @@ export default function PlatformInviteModal({ onClose }) {
     ...(canInviteToPlatform ? ["invite"] : []),
     ...(isPlatformAdmin ? ["quota", "waitlist"] : []),
   ];
+  const tabLabel = {
+    invite: t("platformInvite.tabInvite"),
+    quota: t("platformInvite.tabQuota"),
+    waitlist: t("platformInvite.tabWaitlist"),
+  };
 
   return (
     <div
@@ -157,10 +168,12 @@ export default function PlatformInviteModal({ onClose }) {
             <div className="font-mono text-[10px] uppercase tracking-widest text-accent">
               Plataforma
             </div>
-            <h2 className="text-lg font-bold tracking-tight">Invitaciones</h2>
+            <h2 className="text-lg font-bold tracking-tight">
+              {t("platformInvite.title")}
+            </h2>
             {!isPlatformAdmin && canInviteToPlatform && (
               <p className="text-xs text-mute">
-                Te quedan <span className="text-text">{invitesRemaining}</span>
+                {t("platformInvite.remaining", { n: invitesRemaining })}
               </p>
             )}
           </div>
@@ -175,18 +188,18 @@ export default function PlatformInviteModal({ onClose }) {
 
         {tabs.length > 1 && (
           <div className="flex shrink-0 gap-1 border-b border-border px-3 pt-2">
-            {tabs.map((t) => (
+            {tabs.map((tabId) => (
               <button
-                key={t}
+                key={tabId}
                 type="button"
-                onClick={() => setTab(t)}
+                onClick={() => setTab(tabId)}
                 className={`rounded-t-lg px-3 py-2 text-xs font-semibold transition ${
-                  tab === t
+                  tab === tabId
                     ? "bg-white/5 text-accent"
                     : "text-mute hover:text-dim"
                 }`}
               >
-                {TABS[t]}
+                {tabLabel[tabId]}
               </button>
             ))}
           </div>
@@ -197,23 +210,23 @@ export default function PlatformInviteModal({ onClose }) {
             <form onSubmit={invitePlatform} className="space-y-3">
               <p className="text-xs text-mute">
                 {isPlatformAdmin
-                  ? "Invitación ilimitada. Elige cuántas invitaciones tendrá el nuevo usuario."
-                  : `Consumes 1 de tus ${invitesRemaining}. El invitado recibe 3.`}
+                  ? t("platformInvite.adminUnlimited")
+                  : t("platformInvite.userConsume", { n: invitesRemaining })}
               </p>
               <label className="block text-xs text-mute">
-                Email
+                {t("common.email")}
                 <input
                   type="email"
                   required
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2.5 text-sm outline-none focus:border-accent/50"
-                  placeholder="persona@email.com"
+                  placeholder="name@email.com"
                 />
               </label>
               {isPlatformAdmin && (
                 <label className="block text-xs text-mute">
-                  Cupo del invitado
+                  {t("platformInvite.inviteeQuota")}
                   <input
                     type="number"
                     min={0}
@@ -234,28 +247,26 @@ export default function PlatformInviteModal({ onClose }) {
                 disabled={busy}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-accent/40 bg-accent/20 py-2.5 text-sm font-bold disabled:opacity-50"
               >
-                <Mail size={14} /> Enviar invitación
+                <Mail size={14} /> {t("platformInvite.sendInvite")}
               </button>
             </form>
           )}
 
           {tab === "quota" && isPlatformAdmin && (
             <form onSubmit={assignQuota} className="space-y-3">
-              <p className="text-xs text-mute">
-                Usuario ya registrado. El número es absoluto (no se suma).
-              </p>
+              <p className="text-xs text-mute">{t("platformInvite.quotaHelp")}</p>
               <label className="block text-xs text-mute">
-                Email o @username
+                {t("platformInvite.emailOrUser")}
                 <input
                   required
                   value={quotaTarget}
                   onChange={(e) => setQuotaTarget(e.target.value)}
                   className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2.5 text-sm outline-none"
-                  placeholder="amigo@mail.com o @user"
+                  placeholder="user@mail.com or @user"
                 />
               </label>
               <label className="block text-xs text-mute">
-                Nº de invitaciones
+                {t("platformInvite.numInvites")}
                 <input
                   type="number"
                   min={0}
@@ -275,7 +286,7 @@ export default function PlatformInviteModal({ onClose }) {
                 disabled={busy}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-accent/40 bg-accent/20 py-2.5 text-sm font-bold disabled:opacity-50"
               >
-                <Shield size={14} /> Asignar cupo
+                <Shield size={14} /> {t("platformInvite.assignQuota")}
               </button>
             </form>
           )}
@@ -285,17 +296,16 @@ export default function PlatformInviteModal({ onClose }) {
               <div className="rounded-xl border border-border bg-black/25 p-3">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   <ListOrdered size={14} className="text-accent" />
-                  {pendingCount} en espera
+                  {t("platformInvite.waiting", { n: pendingCount })}
                 </div>
                 <p className="mt-1 text-[11px] text-mute">
-                  Orden: más antiguos primero. El batch invita por fecha de
-                  inscripción.
+                  {t("platformInvite.waitOrder")}
                 </p>
               </div>
 
               <form onSubmit={runBatch} className="flex flex-wrap items-end gap-2">
                 <label className="w-24 text-xs text-mute">
-                  Cuántos (N)
+                  {t("platformInvite.howMany")}
                   <input
                     type="number"
                     min={1}
@@ -306,7 +316,7 @@ export default function PlatformInviteModal({ onClose }) {
                   />
                 </label>
                 <label className="w-28 text-xs text-mute">
-                  Cupo cada uno
+                  {t("platformInvite.quotaEach")}
                   <input
                     type="number"
                     min={0}
@@ -321,7 +331,7 @@ export default function PlatformInviteModal({ onClose }) {
                   disabled={busy || pendingCount === 0}
                   className="rounded-xl border border-accent/40 bg-accent/20 px-4 py-2 text-sm font-semibold disabled:opacity-40"
                 >
-                  Invitar batch
+                  {t("platformInvite.batchInvite")}
                 </button>
               </form>
               {batchMsg && (
@@ -332,7 +342,7 @@ export default function PlatformInviteModal({ onClose }) {
 
               <ul className="max-h-48 space-y-1 overflow-y-auto text-xs">
                 {waitlist.length === 0 ? (
-                  <li className="text-mute">Lista vacía</li>
+                  <li className="text-mute">{t("platformInvite.listEmpty")}</li>
                 ) : (
                   waitlist.map((r, i) => (
                     <li
@@ -344,7 +354,7 @@ export default function PlatformInviteModal({ onClose }) {
                       </span>
                       <span className="shrink-0 text-mute">
                         {r.created_at
-                          ? new Date(r.created_at).toLocaleDateString("es-ES")
+                          ? new Date(r.created_at).toLocaleDateString()
                           : ""}
                       </span>
                     </li>
@@ -355,9 +365,7 @@ export default function PlatformInviteModal({ onClose }) {
           )}
 
           {!canInviteToPlatform && !isPlatformAdmin && (
-            <p className="text-sm text-dim">
-              No tienes cupo de invitaciones. Pide al admin de la plataforma.
-            </p>
+            <p className="text-sm text-dim">{t("platformInvite.noQuota")}</p>
           )}
         </div>
       </div>
