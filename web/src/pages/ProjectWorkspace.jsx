@@ -1,13 +1,16 @@
-import { ArrowLeft, UserPlus } from "lucide-react";
+import { ArrowLeft, Settings, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AppProvider, useApp } from "../context/AppContext";
+import { useAuth } from "../context/AuthContext";
 import KanbanView from "../components/KanbanView";
 import TimelineView from "../components/TimelineView";
 import PanelView from "../components/PanelView";
+import ProjectSettingsModal from "../components/ProjectSettingsModal";
 import * as api from "../lib/api";
 
 function WorkspaceInner() {
+  const { user } = useAuth();
   const {
     loading,
     bootError,
@@ -20,7 +23,14 @@ function WorkspaceInner() {
     reload,
   } = useApp();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [username, setUsername] = useState("");
+
+  const myMember = members?.find((m) => m.id === user?.id);
+  const myRole =
+    myMember?.role ||
+    (project?.owner_id === user?.id ? "owner" : null);
+  const canManage = myRole === "owner" || myRole === "admin";
 
   if (loading) {
     return (
@@ -51,13 +61,25 @@ function WorkspaceInner() {
           <ArrowLeft size={14} /> Proyectos
         </Link>
         <span className="truncate font-semibold">{project?.name}</span>
-        <button
-          type="button"
-          onClick={() => setInviteOpen(true)}
-          className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-mute hover:text-text"
-        >
-          <UserPlus size={12} /> Invitar
-        </button>
+        <div className="flex items-center gap-1.5">
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => setInviteOpen(true)}
+              className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-mute hover:text-text"
+            >
+              <UserPlus size={12} /> Invitar
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-mute hover:text-text"
+            title="Ajustes del proyecto"
+          >
+            <Settings size={12} /> Ajustes
+          </button>
+        </div>
       </div>
       <div className="pt-8">
         {viewMode === "timeline" && <TimelineView />}
@@ -76,7 +98,7 @@ function WorkspaceInner() {
         ))}
       </div>
 
-      {inviteOpen && (
+      {inviteOpen && canManage && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
           <form
             className="w-full max-w-sm rounded-2xl border border-border bg-elev p-5"
@@ -121,6 +143,16 @@ function WorkspaceInner() {
             </div>
           </form>
         </div>
+      )}
+
+      {settingsOpen && (
+        <ProjectSettingsModal
+          projectId={projectId}
+          project={project}
+          myRole={myRole}
+          onClose={() => setSettingsOpen(false)}
+          onChanged={() => reload()}
+        />
       )}
     </>
   );

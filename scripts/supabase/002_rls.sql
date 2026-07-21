@@ -130,17 +130,34 @@ create policy project_members_insert on public.project_members
     or (user_id = auth.uid() and role = 'owner') -- bootstrap via trigger/security definer
   );
 
+-- role = owner solo vía RPC transfer_project_ownership (ver 007)
 drop policy if exists project_members_update on public.project_members;
 create policy project_members_update on public.project_members
   for update to authenticated
-  using (public.can_manage_project(project_id));
+  using (public.can_manage_project(project_id))
+  with check (
+    public.can_manage_project(project_id)
+    and role in ('admin', 'member')
+  );
 
+-- salir (no owner) o echar (no al owner); ownership/leave owner → 007 RPCs
 drop policy if exists project_members_delete on public.project_members;
 create policy project_members_delete on public.project_members
   for delete to authenticated
   using (
-    public.can_manage_project(project_id)
-    or user_id = auth.uid()
+    (
+      user_id = auth.uid()
+      and not exists (
+        select 1 from public.projects p
+        where p.id = project_id and p.owner_id = auth.uid()
+      )
+    )
+    or (
+      public.can_manage_project(project_id)
+      and user_id is distinct from (
+        select p.owner_id from public.projects p where p.id = project_id
+      )
+    )
   );
 
 -- PROJECT INVITES

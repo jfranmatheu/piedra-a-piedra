@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import * as api from "../lib/api";
 import ProfileSettingsModal from "../components/ProfileSettingsModal";
+import ProjectSettingsModal from "../components/ProjectSettingsModal";
 
 export default function ProjectsPage() {
   const { profile, session, isPlatformAdmin, signOut, refreshProfile } = useAuth();
@@ -17,6 +18,7 @@ export default function ProjectsPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMsg, setInviteMsg] = useState(null);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [manageProject, setManageProject] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -184,22 +186,37 @@ export default function ProjectsPage() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {projects.map((p) => (
-                <Link
+                <div
                   key={p.id}
-                  to={`/p/${p.id}`}
-                  className="rounded-2xl border border-border bg-elev p-5 transition hover:border-accent/40 hover:bg-elev/80"
+                  className="group relative rounded-2xl border border-border bg-elev p-5 transition hover:border-accent/40 hover:bg-elev/80"
                 >
-                  <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-mute">
-                    {p.myRole}
-                  </div>
-                  <div className="text-lg font-bold tracking-tight">{p.name}</div>
-                  {p.description && (
-                    <p className="mt-1 line-clamp-2 text-sm text-dim">{p.description}</p>
-                  )}
-                  {p.start_date && (
-                    <p className="mt-2 font-mono text-[11px] text-mute">start {p.start_date}</p>
-                  )}
-                </Link>
+                  <Link to={`/p/${p.id}`} className="block pr-10">
+                    <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-mute">
+                      {p.myRole}
+                    </div>
+                    <div className="text-lg font-bold tracking-tight">{p.name}</div>
+                    {p.description && (
+                      <p className="mt-1 line-clamp-2 text-sm text-dim">{p.description}</p>
+                    )}
+                    {p.start_date && (
+                      <p className="mt-2 font-mono text-[11px] text-mute">
+                        start {p.start_date}
+                      </p>
+                    )}
+                  </Link>
+                  <button
+                    type="button"
+                    title="Gestionar proyecto"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setManageProject(p);
+                    }}
+                    className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-xl border border-border bg-black/30 text-mute opacity-80 transition hover:border-accent/40 hover:text-text group-hover:opacity-100"
+                  >
+                    <Settings size={15} />
+                  </button>
+                </div>
               ))}
             </div>
           )}
@@ -283,6 +300,16 @@ export default function ProjectsPage() {
 
       {profileOpen && (
         <ProfileSettingsModal onClose={() => setProfileOpen(false)} />
+      )}
+
+      {manageProject && (
+        <ProjectSettingsModal
+          projectId={manageProject.id}
+          project={manageProject}
+          myRole={manageProject.myRole}
+          onClose={() => setManageProject(null)}
+          onChanged={() => load()}
+        />
       )}
     </div>
   );

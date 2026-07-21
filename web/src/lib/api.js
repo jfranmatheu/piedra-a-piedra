@@ -36,6 +36,10 @@ function mapSupabaseError(error, fallback = "Error de Supabase") {
       "Falta tu perfil en public.profiles (FK). En SQL: comprueba select * from profiles where id = auth.uid(); si está vacío, vuelve a crear el usuario o inserta el perfil."
     );
   }
+  // Postgres RAISE EXCEPTION from RPCs (ownership, leave, roles…)
+  if (error.message && !msg.startsWith("json") && error.message.length < 280) {
+    return new Error(error.message);
+  }
   return error instanceof Error ? error : new Error(error.message || fallback);
 }
 
@@ -194,8 +198,33 @@ export async function getProject(projectId) {
     .select("*")
     .eq("id", projectId)
     .single();
-  if (error) throw error;
+  if (error) throw mapSupabaseError(error);
   return data;
+}
+
+export async function updateProject(projectId, fields) {
+  const patch = {};
+  if (fields.name != null) patch.name = String(fields.name).trim();
+  if (fields.description != null) patch.description = String(fields.description);
+  if (fields.start_date !== undefined) {
+    patch.start_date = fields.start_date || null;
+  }
+  if (!Object.keys(patch).length) return getProject(projectId);
+
+  const { data, error } = await supabase
+    .from("projects")
+    .update(patch)
+    .eq("id", projectId)
+    .select()
+    .maybeSingle();
+  if (error) throw mapSupabaseError(error);
+  if (!data) throw new Error("No se pudo actualizar el proyecto (¿sin permiso?)");
+  return data;
+}
+
+export async function deleteProject(projectId) {
+  const { error } = await supabase.from("projects").delete().eq("id", projectId);
+  if (error) throw mapSupabaseError(error);
 }
 
 export async function listProjectMembers(projectId) {
@@ -204,29 +233,51 @@ export async function listProjectMembers(projectId) {
     .select(
       `
       role,
-      user:profiles ( id, username, display_name, email, avatar_url )
+      created_at,
+      user:profiles ( id, username, display_name, avatar_url )
     `
     )
-    .eq("project_id", projectId);
-  if (error) throw error;
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: true });
+  if (error) throw mapSupabaseError(error);
   return (data || []).map((r) => ({
     role: r.role,
+    joinedAt: r.created_at,
     ...r.user,
   }));
 }
 
 export async function inviteToProject(projectId, username, role = "member") {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await requireUser();
+  const uname = String(username || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, "");
+  if (!uname) throw new Error("Indica un username");
+
+  if (role === "owner") {
+    throw new Error("No se puede invitar como owner; usa transferir propiedad");
+  }
+  if (!["admin", "member"].includes(role)) {
+    throw new Error("Rol de invitación no válido");
+  }
+
   const { data: profile, error: pErr } = await supabase
     .from("profiles")
     .select("id, username")
-    .eq("username", username.toLowerCase())
+    .eq("username", uname)
     .maybeSingle();
-  if (pErr) throw pErr;
-  if (!profile) throw new Error(`Usuario @${username} no encontrado`);
-  if (profile.id === user?.id) throw new Error("No puedes invitarte a ti mismo");
+  if (pErr) throw mapSupabaseError(pErr);
+  if (!profile) throw new Error(`Usuario @${uname} no encontrado en la plataforma`);
+  if (profile.id === user.id) throw new Error("No puedes invitarte a ti mismo");
+
+  const { data: existing } = await supabase
+    .from("project_members")
+    .select("user_id")
+    .eq("project_id", projectId)
+    .eq("user_id", profile.id)
+    .maybeSingle();
+  if (existing) throw new Error(`@${uname} ya es miembro del proyecto`);
 
   const { data, error } = await supabase
     .from("project_invites")
@@ -239,8 +290,47 @@ export async function inviteToProject(projectId, username, role = "member") {
     })
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    const msg = (error.message || "").toLowerCase();
+    if (error.code === "23505" || msg.includes("duplicate") || msg.includes("unique")) {
+      throw new Error(`Ya hay una invitación pendiente para @${uname}`);
+    }
+    throw mapSupabaseError(error);
+  }
   return data;
+}
+
+export async function transferProjectOwnership(projectId, newOwnerId) {
+  const { error } = await supabase.rpc("transfer_project_ownership", {
+    p_project_id: projectId,
+    p_new_owner_id: newOwnerId,
+  });
+  if (error) throw mapSupabaseError(error);
+}
+
+export async function leaveProject(projectId, newOwnerId = null) {
+  const { error } = await supabase.rpc("leave_project", {
+    p_project_id: projectId,
+    p_new_owner_id: newOwnerId,
+  });
+  if (error) throw mapSupabaseError(error);
+}
+
+export async function setProjectMemberRole(projectId, userId, role) {
+  const { error } = await supabase.rpc("set_project_member_role", {
+    p_project_id: projectId,
+    p_user_id: userId,
+    p_role: role,
+  });
+  if (error) throw mapSupabaseError(error);
+}
+
+export async function removeProjectMember(projectId, userId) {
+  const { error } = await supabase.rpc("remove_project_member", {
+    p_project_id: projectId,
+    p_user_id: userId,
+  });
+  if (error) throw mapSupabaseError(error);
 }
 
 export async function acceptProjectInvite(inviteId) {
