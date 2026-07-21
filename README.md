@@ -30,9 +30,11 @@ npm run dev
 
 3. Abre http://localhost:5173
 
-## Deploy
+## Deploy y setup del admin
 
 Ver **[DEPLOY.md](./DEPLOY.md)** — fork → Supabase → Vercel/Netlify.
+
+**Admin (resumen):** no se invita por email. En Supabase → Authentication → Users → **Add user** con **email + password** (Auto Confirm). Luego SQL (`004_setup_admin.sql`): `is_platform_admin = true`, `username_setup_done = true`. Entrar en la app en `/login` con ese email y esa contraseña.
 
 ## Estructura
 

@@ -9,30 +9,83 @@ Haz fork en GitHub/GitLab y clona tu copia.
 ## 2. Proyecto Supabase
 
 1. Crea un proyecto en [supabase.com](https://supabase.com) (free tier).
-2. **SQL Editor** → ejecuta en orden:
+2. **SQL Editor** → ejecuta en orden (schema base):
    - `scripts/supabase/001_schema.sql`
    - `scripts/supabase/002_rls.sql`
    - `scripts/supabase/003_storage.sql`
 3. **Authentication → Providers → Email**
    - Enable Email
-   - **Disable “Enable sign ups”** (solo invitación)
-4. **Authentication → Users → Add user**
-   - Email + contraseña fuerte (admin)
-5. SQL Editor → marca admin (ver `scripts/supabase/004_setup_admin.sql`):
+   - **Disable “Enable sign ups”** (solo invitación; el admin se crea a mano en §2.1)
+4. **Authentication → URL Configuration**
+   - Site URL = URL de tu app (la de Vercel cuando la tengas)
+   - Redirect URLs: `https://tu-app.vercel.app/**` (cubre `/login` y `/join`)
+5. **Crea el admin completo** (email **y** contraseña) — §2.1 abajo.
+6. Copia de **Project Settings → [API Keys](https://supabase.com/dashboard/project/_/settings/api-keys/)**:
+   - Project URL → `VITE_SUPABASE_URL`
+   - **Publishable key** (`sb_publishable_…`) → `VITE_SUPABASE_PUBLISHABLE_KEY`
+   - **Secret key** (`sb_secret_…`) → `SUPABASE_SECRET_KEY` (**solo server**)
+
+### 2.1 Setup del admin al completo (email + contraseña + flag)
+
+El admin **no** se invita por email. Se crea en el dashboard de Auth con contraseña y luego se marca en SQL.  
+Guión comentado también en `scripts/supabase/004_setup_admin.sql`.
+
+#### A) Crear el usuario en Authentication (aquí se define la contraseña)
+
+1. Supabase → **Authentication → Users**
+2. **Add user** → **Create new user**
+3. Campos:
+   - **Email** — el del admin (ej. `tu@email.com`)
+   - **Password** — contraseña fuerte (≥ 8 caracteres). **Esta es la que usarás en `/login`.**
+4. Marca **Auto Confirm User** (si aparece), para entrar sin confirmar el correo.
+5. **Create user**
+
+El trigger `handle_new_user` crea una fila en `public.profiles`.  
+Si creaste el usuario *antes* del schema, no habrá perfil: borra el user y créalo **después** de `001_schema.sql`, o inserta el perfil (ver `004_setup_admin.sql`).
+
+#### B) Marcar platform admin + username (SQL Editor)
+
+Sustituye email y username y ejecuta:
 
 ```sql
 update public.profiles
-set is_platform_admin = true
-where lower(email) = lower('TU_ADMIN@email.com');
+set
+  is_platform_admin = true,
+  username = 'tu_username',          -- solo a-z, 0-9, _ (3–32); evita el nombre "admin" solo
+  display_name = 'Admin',
+  username_setup_done = true         -- no te mande al flujo /join de invitados
+where lower(email) = lower('tu@email.com');
 ```
 
-6. Copia de **Project Settings → [API Keys](https://supabase.com/dashboard/project/_/settings/api-keys/)**  
-   (claves nuevas, no las JWT legacy):
-   - Project URL → `VITE_SUPABASE_URL`
-   - **Publishable key** (`sb_publishable_…`) → `VITE_SUPABASE_PUBLISHABLE_KEY` (cliente)
-   - **Secret key** (`sb_secret_…`) → `SUPABASE_SECRET_KEY` (**solo server**, nunca `VITE_*`)
+Comprueba:
 
-   Docs: https://supabase.com/docs/guides/getting-started/api-keys
+```sql
+select email, username, is_platform_admin, username_setup_done
+from public.profiles
+where is_platform_admin = true;
+```
+
+#### C) Iniciar sesión en la app
+
+1. Abre `https://tu-app.vercel.app/login` (o local `http://localhost:5173/login`)
+2. **Email** = el del paso A  
+3. **Password** = la del paso A (la de “Create new user” en Auth)  
+4. **Entrar** → hub de proyectos + badge **admin**
+5. Desde ahí invitas al resto (ellos sí usan el mail de invitación → `/join`)
+
+#### Si el admin no puede entrar
+
+| Síntoma | Qué mirar |
+|---------|-----------|
+| Invalid login credentials | Email/password del paso A; en Users el usuario existe y está **Confirmed** |
+| Te manda a `/join` | Ejecuta de nuevo el `UPDATE` con `username_setup_done = true` |
+| Sin badge admin / no puedes invitar | `is_platform_admin` no es `true` en `profiles` |
+| Env incorrecto | `VITE_SUPABASE_URL` del **mismo** proyecto donde creaste el user |
+
+#### Cambiar la contraseña del admin más adelante
+
+**Authentication → Users** → el usuario → reset / editar password.  
+(La app no tiene aún pantalla “cambiar contraseña”.)
 
 ## 3. Deploy en Vercel
 
@@ -87,14 +140,14 @@ where lower(email) = lower('TU_ADMIN@email.com');
 
 ## 5. Flujo de uso
 
-1. Admin inicia sesión.
-2. **Invitar a la plataforma** (email) → el usuario recibe el mail de Supabase y define contraseña.
-3. El invitado abre el enlace del email → `/join`: elige **@username** + **contraseña** (o rechaza y se borra de Auth). Luego entra al dashboard.
+1. **Admin** inicia sesión en `/login` con el **email + contraseña** definidos en Authentication → Users (sección 2.1). No usa el enlace de invitación.
+2. Admin → **Invitar a la plataforma** (solo email del invitado).
+3. El **invitado** abre el mail → `/join` → elige **@username + contraseña** (o rechaza y se borra de Auth) → dashboard.
 4. Cualquier usuario **crea proyectos**.
-5. Owner/admin del proyecto **invita por @username** (el email sigue privado).
-6. El invitado ve la notificación y acepta → entra al proyecto.
-7. Username editable en cualquier momento desde **Perfil** en el hub de proyectos.
-8. Kanban / Timeline / Panel por proyecto; assets en bucket `project-assets`.
+5. Owner/admin de proyecto **invita por @username** (email privado).
+6. El invitado de proyecto acepta la notificación → entra al proyecto.
+7. Username editable en **Perfil** del hub.
+8. Kanban / Timeline / Panel; assets en `project-assets`.
 
 ## 6. Desarrollo local
 

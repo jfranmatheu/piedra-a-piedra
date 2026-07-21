@@ -1,55 +1,35 @@
-# Scripts — Supabase setup
+# Scripts Supabase — Piedra a Piedra
 
-Configura la base de datos y el storage de Supabase para **Piedra a Piedra**.
+Ejecutar en **Supabase → SQL Editor** (o `apply-supabase.ps1` si tienes `SUPABASE_DB_URL`).
 
-## Orden de ejecución
+## Orden recomendado (proyecto nuevo)
 
-En el [SQL Editor](https://supabase.com/dashboard) de tu proyecto, ejecuta en orden:
+| # | Archivo | Qué hace |
+|---|---------|----------|
+| 1 | `001_schema.sql` | Tablas, triggers (perfil al crear user, owner al crear proyecto) |
+| 2 | `002_rls.sql` | Row Level Security + grants |
+| 3 | `003_storage.sql` | Bucket `project-assets` |
+| 4 | **Auth: crear admin** | Dashboard → Users → Add user (**email + password**) |
+| 5 | `004_setup_admin.sql` | Marca `is_platform_admin`, username, `username_setup_done` |
 
-1. `supabase/001_schema.sql`
-2. `supabase/002_rls.sql`
-3. `supabase/003_storage.sql`
-4. `supabase/004_setup_admin.sql` (tras crear el usuario admin en Auth)
+## Setup del admin (email + contraseña)
 
-## CLI (opcional)
+El admin **no** usa el flujo `/join` de invitados.
 
-```bash
-# Con Supabase CLI instalada y proyecto linkeado
-supabase db execute -f scripts/supabase/001_schema.sql
-supabase db execute -f scripts/supabase/002_rls.sql
-supabase db execute -f scripts/supabase/003_storage.sql
-```
+1. **Authentication → Users → Add user**
+   - Email del admin  
+   - **Password** (la del login en la app)  
+   - Auto Confirm User = on  
+2. Ejecuta el `UPDATE` de `004_setup_admin.sql` (email, username, `is_platform_admin`, `username_setup_done = true`).
+3. App → `/login` con ese email y esa password.
 
-O desde la raíz del repo (PowerShell):
-
-```powershell
-.\scripts\apply-supabase.ps1
-```
-
-(requiere `SUPABASE_DB_URL` o pegar SQL manualmente)
-
-## Auth (importante)
-
-En Supabase → **Authentication → Providers → Email**:
-
-- ✅ Enable Email provider  
-- ❌ **Disable** “Enable sign ups” (solo invitación)  
-- Opcional: confirmar email
-
-## Crear admin
-
-1. Authentication → Users → **Add user** → email + contraseña fuerte  
-2. Ejecuta el `UPDATE` de `004_setup_admin.sql` con ese email  
-3. El admin inicia sesión en la app e invita usuarios por email (vía función serverless)
+Detalle paso a paso: raíz del repo → **DEPLOY.md** sección **2.1**.
 
 ## Variables de entorno
 
-Ver `.env.example` en la raíz y en `web/`.
-
-| Variable | Tipo de key | Dónde |
-|----------|-------------|--------|
+| Variable | Origen | Uso |
+|----------|--------|-----|
 | `VITE_SUPABASE_URL` | Project URL | Cliente |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_…` | Cliente |
-| `SUPABASE_SECRET_KEY` | `sb_secret_…` | Solo server (`/api/invite-user`) |
-
-Docs: https://supabase.com/docs/guides/getting-started/api-keys
+| `SUPABASE_SECRET_KEY` | `sb_secret_…` | Solo server (`/api/invite-user`, `/api/decline-invite`) |
+| `APP_URL` | URL de la app | Redirect de invitaciones → `/join` |
