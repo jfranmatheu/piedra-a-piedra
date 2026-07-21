@@ -1,4 +1,4 @@
-import { Minus, Plus, ZoomIn } from "lucide-react";
+import { Minus, Pencil, Plus, ZoomIn } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../context/AppContext";
 import {
@@ -13,6 +13,7 @@ import { taskKey } from "../lib/utils";
 import { AssigneeChips, ProgressBar } from "./ui";
 import FilterBar from "./FilterBar";
 import ViewToggle from "./ViewToggle";
+import StoneEditModal from "./StoneEditModal";
 
 const LABEL_W = 260;
 const ROW_H = 44;
@@ -204,6 +205,9 @@ export default function TimelineView() {
     filteredTasks,
     isDone,
     updateTask,
+    editingStoneId,
+    setEditingStoneId,
+    NEW_STONE_ID,
   } = useApp();
 
   const scrollerRef = useRef(null);
@@ -438,6 +442,13 @@ export default function TimelineView() {
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setEditingStoneId(NEW_STONE_ID)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/15 px-3 py-2 text-xs font-semibold text-text hover:bg-accent/25"
+            >
+              <Plus size={14} /> Nueva piedra
+            </button>
             {/* Zoom controls */}
             <div className="flex items-center gap-1 rounded-xl border border-border bg-black/30 p-1">
               <button
@@ -599,7 +610,7 @@ export default function TimelineView() {
                 return (
                   <div
                     key={`stone-${row.stone.id}`}
-                    className="relative flex border-b border-border/50"
+                    className="group/stone relative flex border-b border-border/50"
                     style={{ height: STONE_H }}
                   >
                     <div
@@ -618,6 +629,14 @@ export default function TimelineView() {
                       <span className="font-mono text-[10px] text-mute">
                         {row.st?.done}/{row.st?.total}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => setEditingStoneId(row.stone.id)}
+                        className="grid h-6 w-6 place-items-center rounded-md text-mute opacity-0 transition group-hover/stone:opacity-100 hover:bg-white/10 hover:text-text"
+                        title="Editar / borrar piedra"
+                      >
+                        <Pencil size={12} />
+                      </button>
                     </div>
                     <div className="relative" style={{ width: chartW }}>
                       <div
@@ -674,13 +693,28 @@ export default function TimelineView() {
             })}
 
             {rows.length === 0 && (
-              <div className="flex h-40 items-center justify-center text-dim">
-                No hay tareas que mostrar con los filtros actuales.
+              <div className="flex h-40 flex-col items-center justify-center gap-3 text-dim">
+                <p>
+                  {model?.stones?.length
+                    ? "No hay tareas que mostrar con los filtros actuales."
+                    : "Este proyecto aún no tiene piedras."}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setEditingStoneId(NEW_STONE_ID)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/20 px-3 py-2 text-sm font-semibold text-text"
+                >
+                  <Plus size={14} /> Nueva piedra
+                </button>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {editingStoneId && (
+        <StoneEditModal stoneId={editingStoneId} onClose={() => setEditingStoneId(null)} />
+      )}
     </div>
   );
 }

@@ -334,16 +334,22 @@ function colorFromId(id) {
 }
 
 export async function createStone(projectId, fields) {
-  const { count } = await supabase
+  const { data: existing, error: listErr } = await supabase
     .from("stones")
-    .select("*", { count: "exact", head: true })
+    .select("number, sort_order")
     .eq("project_id", projectId);
+  if (listErr) throw listErr;
+
+  const nextNumber =
+    (existing || []).reduce((m, s) => Math.max(m, s.number || 0), 0) + 1;
+  const nextSort =
+    (existing || []).reduce((m, s) => Math.max(m, s.sort_order ?? 0), -1) + 1;
 
   const { data, error } = await supabase
     .from("stones")
     .insert({
       project_id: projectId,
-      number: (count || 0) + 1,
+      number: nextNumber,
       title: fields.title || "Nueva piedra",
       description: fields.description || "",
       icon: fields.icon || "🪨",
@@ -352,7 +358,7 @@ export async function createStone(projectId, fields) {
       period: fields.period || "",
       date_start: fields.dateStart || null,
       date_end: fields.dateEnd || null,
-      sort_order: count || 0,
+      sort_order: nextSort,
     })
     .select()
     .single();
@@ -380,6 +386,12 @@ export async function updateStoneDb(stoneId, fields) {
     .single();
   if (error) throw error;
   return data;
+}
+
+export async function deleteStoneDb(stoneId) {
+  // tasks cascade via FK on stone_id
+  const { error } = await supabase.from("stones").delete().eq("id", stoneId);
+  if (error) throw error;
 }
 
 export async function createTaskDb(projectId, stoneId, fields) {

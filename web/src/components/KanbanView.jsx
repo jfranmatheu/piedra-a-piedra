@@ -22,6 +22,8 @@ import ViewToggle from "./ViewToggle";
 import StoneEditModal from "./StoneEditModal";
 import { CARD_W, KanbanCardFace, SortableKanbanCard } from "./KanbanCard";
 
+const ADD_COL_W = 220;
+
 function laneId(stoneId, lane) {
   return `lane::${stoneId}::${lane}`;
 }
@@ -114,6 +116,7 @@ export default function KanbanView() {
     addTask,
     editingStoneId,
     setEditingStoneId,
+    NEW_STONE_ID,
   } = useApp();
 
   const showDone = !filters.incompleteOnly;
@@ -245,128 +248,173 @@ export default function KanbanView() {
           onDragCancel={onDragCancel}
         >
           <div className="flex min-h-full w-max gap-3.5 pb-3">
-            {visibleStones.length === 0 ? (
-              <div className="m-6 rounded-2xl border border-dashed border-border p-8 text-center text-dim">
-                <p>No hay piedras activas en esta fecha.</p>
-                <p className="mt-2 font-mono text-xs text-mute">
-                  Activa «Mostrar todo» o revisa start / periodos
-                </p>
+            {visibleStones.length === 0 && (
+              <div className="m-2 flex w-[min(420px,90vw)] flex-col items-center justify-center rounded-2xl border border-dashed border-border p-8 text-center text-dim">
+                {model?.stones?.length === 0 ? (
+                  <>
+                    <p className="text-base font-semibold text-text">Este proyecto no tiene piedras</p>
+                    <p className="mt-2 text-sm">
+                      Crea la primera piedra del roadmap para empezar a añadir tareas.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setEditingStoneId(NEW_STONE_ID)}
+                      className="mt-5 inline-flex items-center gap-2 rounded-xl border border-accent/40 bg-accent/20 px-4 py-2.5 text-sm font-semibold text-text hover:bg-accent/30"
+                    >
+                      <Plus size={16} /> Nueva piedra
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p>No hay piedras activas en esta fecha.</p>
+                    <p className="mt-2 font-mono text-xs text-mute">
+                      Activa «Mostrar todo» o revisa fechas / periodos
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setEditingStoneId(NEW_STONE_ID)}
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold text-dim hover:border-accent/40 hover:text-text"
+                    >
+                      <Plus size={14} /> Nueva piedra
+                    </button>
+                  </>
+                )}
               </div>
-            ) : (
-              visibleStones.map((s) => {
-                const st = stats.perStone.find((p) => p.id === s.id) || {
-                  done: 0,
-                  total: 0,
-                  pct: 0,
-                };
-                const todoLid = laneId(s.id, "todo");
-                const doneLid = laneId(s.id, "done");
-                const colW = showDone ? CARD_W * 2 + 16 * 2 + 8 + 20 : CARD_W + 16 + 20;
-                return (
-                  <section
-                    key={s.id}
-                    className="flex shrink-0 flex-col overflow-hidden rounded-2xl border shadow-xl"
-                    style={{
-                      width: colW,
-                      borderColor: `color-mix(in srgb, ${s.color} 35%, rgba(255,255,255,0.07))`,
-                      background: `linear-gradient(165deg, color-mix(in srgb, ${s.color} 10%, transparent), transparent 50%), rgba(14,14,22,0.9)`,
-                    }}
-                  >
-                    <header className="group relative flex items-center gap-2.5 px-3.5 pb-2 pt-3.5">
-                      <span
-                        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border text-lg"
-                        style={{
-                          borderColor: `color-mix(in srgb, ${s.color} 50%, transparent)`,
-                          background: "rgba(0,0,0,0.35)",
-                        }}
-                      >
-                        {s.icon || "🪨"}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div
-                          className="font-mono text-[10px] font-medium uppercase tracking-widest"
-                          style={{ color: s.color }}
-                        >
-                          Piedra {s.number}
-                        </div>
-                        <h2 className="truncate text-[15px] font-bold tracking-tight">
-                          {s.title}
-                        </h2>
-                      </div>
-                      <span className="rounded-full border border-border bg-black/30 px-2 py-0.5 font-mono text-[11px] text-dim">
-                        {st.done}/{st.total}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setEditingStoneId(s.id)}
-                        className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-lg text-mute opacity-0 transition group-hover:opacity-100 hover:bg-black/40 hover:text-text"
-                        title="Editar piedra"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                    </header>
-                    <div className="px-3.5 pb-2">
-                      <ProgressBar pct={st.pct} color={s.color} />
-                    </div>
-                    {(s.time || s.period) && (
-                      <div className="flex flex-wrap gap-1.5 px-3.5 pb-2">
-                        {s.time && (
-                          <span
-                            className="rounded-full border px-2 py-0.5 text-[10px] font-medium"
-                            style={{
-                              color: s.color,
-                              borderColor: `${s.color}44`,
-                              background: `${s.color}18`,
-                            }}
-                          >
-                            ⏱ {s.time}
-                          </span>
-                        )}
-                        {s.period && (
-                          <span className="rounded-full border border-border px-2 py-0.5 text-[10px] text-dim">
-                            📅 {s.period}
-                          </span>
-                        )}
-                      </div>
-                    )}
+            )}
 
-                    <div className="flex flex-1 justify-center gap-2 px-2.5">
+            {visibleStones.map((s) => {
+              const st = stats.perStone.find((p) => p.id === s.id) || {
+                done: 0,
+                total: 0,
+                pct: 0,
+              };
+              const todoLid = laneId(s.id, "todo");
+              const doneLid = laneId(s.id, "done");
+              const colW = showDone ? CARD_W * 2 + 16 * 2 + 8 + 20 : CARD_W + 16 + 20;
+              return (
+                <section
+                  key={s.id}
+                  className="flex shrink-0 flex-col overflow-hidden rounded-2xl border shadow-xl"
+                  style={{
+                    width: colW,
+                    borderColor: `color-mix(in srgb, ${s.color} 35%, rgba(255,255,255,0.07))`,
+                    background: `linear-gradient(165deg, color-mix(in srgb, ${s.color} 10%, transparent), transparent 50%), rgba(14,14,22,0.9)`,
+                  }}
+                >
+                  <header className="group relative flex items-center gap-2.5 px-3.5 pb-2 pt-3.5">
+                    <span
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border text-lg"
+                      style={{
+                        borderColor: `color-mix(in srgb, ${s.color} 50%, transparent)`,
+                        background: "rgba(0,0,0,0.35)",
+                      }}
+                    >
+                      {s.icon || "🪨"}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className="font-mono text-[10px] font-medium uppercase tracking-widest"
+                        style={{ color: s.color }}
+                      >
+                        Piedra {s.number}
+                      </div>
+                      <h2 className="truncate text-[15px] font-bold tracking-tight">
+                        {s.title}
+                      </h2>
+                    </div>
+                    <span className="rounded-full border border-border bg-black/30 px-2 py-0.5 font-mono text-[11px] text-dim">
+                      {st.done}/{st.total}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setEditingStoneId(s.id)}
+                      className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-lg text-mute opacity-0 transition group-hover:opacity-100 hover:bg-black/40 hover:text-text"
+                      title="Editar / borrar piedra"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  </header>
+                  <div className="px-3.5 pb-2">
+                    <ProgressBar pct={st.pct} color={s.color} />
+                  </div>
+                  {(s.time || s.period) && (
+                    <div className="flex flex-wrap gap-1.5 px-3.5 pb-2">
+                      {s.time && (
+                        <span
+                          className="rounded-full border px-2 py-0.5 text-[10px] font-medium"
+                          style={{
+                            color: s.color,
+                            borderColor: `${s.color}44`,
+                            background: `${s.color}18`,
+                          }}
+                        >
+                          ⏱ {s.time}
+                        </span>
+                      )}
+                      {s.period && (
+                        <span className="rounded-full border border-border px-2 py-0.5 text-[10px] text-dim">
+                          📅 {s.period}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex flex-1 justify-center gap-2 px-2.5">
+                    <Lane
+                      id={todoLid}
+                      title="TODO"
+                      colorClass="text-amber-300"
+                      cardIds={lanes[todoLid] || []}
+                      cardMap={cardMap}
+                      showExpiry={showExpiry}
+                      meta={model.meta}
+                    />
+                    {showDone && (
                       <Lane
-                        id={todoLid}
-                        title="TODO"
-                        colorClass="text-amber-300"
-                        cardIds={lanes[todoLid] || []}
+                        id={doneLid}
+                        title="DONE"
+                        colorClass="text-emerald-400"
+                        cardIds={lanes[doneLid] || []}
                         cardMap={cardMap}
                         showExpiry={showExpiry}
                         meta={model.meta}
                       />
-                      {showDone && (
-                        <Lane
-                          id={doneLid}
-                          title="DONE"
-                          colorClass="text-emerald-400"
-                          cardIds={lanes[doneLid] || []}
-                          cardMap={cardMap}
-                          showExpiry={showExpiry}
-                          meta={model.meta}
-                        />
-                      )}
-                    </div>
+                    )}
+                  </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const title = prompt("Título de la nueva tarea:");
-                        if (title === null) return;
-                        addTask(s.id, title);
-                      }}
-                      className="mx-2.5 mb-3 mt-2 flex items-center justify-center gap-1 rounded-xl border border-dashed border-border-strong py-2 text-xs font-semibold text-dim transition hover:border-accent/40 hover:bg-accent/10 hover:text-text"
-                    >
-                      <Plus size={14} /> Nueva tarea
-                    </button>
-                  </section>
-                );
-              })
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const title = prompt("Título de la nueva tarea:");
+                      if (title === null) return;
+                      addTask(s.id, title);
+                    }}
+                    className="mx-2.5 mb-3 mt-2 flex items-center justify-center gap-1 rounded-xl border border-dashed border-border-strong py-2 text-xs font-semibold text-dim transition hover:border-accent/40 hover:bg-accent/10 hover:text-text"
+                  >
+                    <Plus size={14} /> Nueva tarea
+                  </button>
+                </section>
+              );
+            })}
+
+            {/* Always-visible column to add stones */}
+            {(visibleStones.length > 0 || (model?.stones?.length ?? 0) > 0) && (
+              <button
+                type="button"
+                onClick={() => setEditingStoneId(NEW_STONE_ID)}
+                className="flex shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border-strong bg-black/15 px-4 text-dim transition hover:border-accent/45 hover:bg-accent/10 hover:text-text"
+                style={{ width: ADD_COL_W, minHeight: 280 }}
+              >
+                <span className="grid h-12 w-12 place-items-center rounded-2xl border border-border bg-black/30 text-2xl">
+                  🪨
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-sm font-semibold">
+                  <Plus size={16} /> Nueva piedra
+                </span>
+                <span className="max-w-[11rem] text-center font-mono text-[10px] text-mute">
+                  Milestone del roadmap
+                </span>
+              </button>
             )}
           </div>
 

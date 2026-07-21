@@ -13,7 +13,7 @@ import {
   isTaskActiveByDate,
   periodLabelFromDates,
 } from "../lib/dates";
-import { levelFromXp, taskKey } from "../lib/utils";
+import { levelFromXp, parseTaskKey, taskKey } from "../lib/utils";
 import { publicAssetUrl } from "../lib/supabase";
 
 const FILTER_KEY = "piedra-filters-v2";
@@ -385,6 +385,71 @@ export function AppProvider({ children }) {
     [toast, reload]
   );
 
+  const addStone = useCallback(
+    async (fields = {}) => {
+      if (!projectId) return null;
+      try {
+        const row = await api.createStone(projectId, fields);
+        const stone = {
+          id: row.id,
+          number: row.number,
+          title: row.title,
+          description: row.description || "",
+          icon: row.icon || "🪨",
+          color: row.color || "#f59e0b",
+          time: row.time_label || "",
+          period:
+            row.period ||
+            periodLabelFromDates(row.date_start || "", row.date_end || ""),
+          dateStart: row.date_start || "",
+          dateEnd: row.date_end || "",
+          sort_order: row.sort_order,
+          tasks: [],
+        };
+        setModel((prev) => {
+          if (!prev) return prev;
+          return { ...prev, stones: [...prev.stones, stone] };
+        });
+        toast("🪨 Piedra creada", "stone");
+        return stone;
+      } catch (e) {
+        toast(`Error al crear piedra: ${e.message}`, "stone");
+        return null;
+      }
+    },
+    [projectId, toast]
+  );
+
+  const deleteStone = useCallback(
+    async (stoneId) => {
+      if (!stoneId) return false;
+      const prevSnapshot = model?.stones;
+      setModel((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          stones: prev.stones.filter((s) => s.id !== stoneId),
+        };
+      });
+      if (editingStoneId === stoneId) setEditingStoneId(null);
+      if (parseTaskKey(selectedTaskKey)?.stoneId === stoneId) setSelectedTaskKey(null);
+      try {
+        await api.deleteStoneDb(stoneId);
+        toast("🗑 Piedra eliminada", "stone");
+        return true;
+      } catch (e) {
+        if (prevSnapshot) {
+          setModel((prev) => (prev ? { ...prev, stones: prevSnapshot } : prev));
+        } else {
+          reload();
+        }
+        toast(`Error al borrar piedra: ${e.message}`, "stone");
+        return false;
+      }
+    },
+    [model?.stones, editingStoneId, selectedTaskKey, toast, reload]
+  );
+
   const addTask = useCallback(
     async (stoneId, title = "Nueva tarea") => {
       if (!projectId) return;
@@ -477,10 +542,13 @@ export function AppProvider({ children }) {
     updateTask,
     deleteTask,
     addTask,
+    addStone,
+    deleteStone,
     updateStone,
     reload,
     resolveImgUrl,
     UNASSIGNED,
+    NEW_STONE_ID: "__new__",
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

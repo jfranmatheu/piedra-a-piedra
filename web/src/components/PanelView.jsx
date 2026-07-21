@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { Pencil, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useApp } from "../context/AppContext";
 import { taskKey } from "../lib/utils";
 import { AssigneeChips, ProgressBar } from "./ui";
 import FilterBar from "./FilterBar";
 import ViewToggle from "./ViewToggle";
+import StoneEditModal from "./StoneEditModal";
 
 export default function PanelView() {
   const {
@@ -13,12 +15,26 @@ export default function PanelView() {
     filteredTasks,
     isDone,
     moveTask,
+    editingStoneId,
+    setEditingStoneId,
+    NEW_STONE_ID,
   } = useApp();
 
   const stones = visibleStones.filter(
     (s) => filteredTasks(s).length > 0 || true
   );
   const [activeId, setActiveId] = useState(stones[0]?.id || null);
+
+  useEffect(() => {
+    if (!stones.length) {
+      setActiveId(null);
+      return;
+    }
+    if (!stones.some((s) => s.id === activeId)) {
+      setActiveId(stones[0].id);
+    }
+  }, [stones, activeId]);
+
   const active = stones.find((s) => s.id === activeId) || stones[0];
   const st = active && stats.perStone.find((p) => p.id === active.id);
   const tasks = active ? filteredTasks(active) : [];
@@ -71,6 +87,13 @@ export default function PanelView() {
               </button>
             );
           })}
+          <button
+            type="button"
+            onClick={() => setEditingStoneId(NEW_STONE_ID)}
+            className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border-strong py-2.5 text-xs font-semibold text-dim transition hover:border-accent/40 hover:bg-accent/10 hover:text-text"
+          >
+            <Plus size={14} /> Nueva piedra
+          </button>
         </nav>
       </aside>
 
@@ -89,7 +112,7 @@ export default function PanelView() {
               >
                 {active.icon}
               </span>
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="font-mono text-[10px] uppercase tracking-widest" style={{ color: active.color }}>
                   Piedra {active.number}
                 </div>
@@ -98,6 +121,14 @@ export default function PanelView() {
                   <p className="mt-1 whitespace-pre-line text-sm text-dim">{active.description}</p>
                 )}
               </div>
+              <button
+                type="button"
+                onClick={() => setEditingStoneId(active.id)}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border text-mute hover:bg-white/5 hover:text-text"
+                title="Editar / borrar piedra"
+              >
+                <Pencil size={16} />
+              </button>
             </div>
             <ProgressBar pct={st?.pct || 0} color={active.color} className="mb-4 h-2" />
             <div className="space-y-2">
@@ -131,9 +162,26 @@ export default function PanelView() {
             </div>
           </article>
         ) : (
-          <p className="text-dim">Sin piedras visibles.</p>
+          <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-border p-8 text-dim">
+            <p>
+              {model?.stones?.length
+                ? "Sin piedras visibles con los filtros actuales."
+                : "Este proyecto aún no tiene piedras."}
+            </p>
+            <button
+              type="button"
+              onClick={() => setEditingStoneId(NEW_STONE_ID)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/20 px-3 py-2 text-sm font-semibold text-text"
+            >
+              <Plus size={14} /> Nueva piedra
+            </button>
+          </div>
         )}
       </main>
+
+      {editingStoneId && (
+        <StoneEditModal stoneId={editingStoneId} onClose={() => setEditingStoneId(null)} />
+      )}
     </div>
   );
 }
