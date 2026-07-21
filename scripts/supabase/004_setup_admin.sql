@@ -39,7 +39,8 @@ set
   is_platform_admin = true,
   username = 'admin_tu_nombre',   -- cámbialo: solo a-z 0-9 _  (3–32), NO uses "admin" solo
   display_name = 'Admin',
-  username_setup_done = true      -- evita la pantalla /join de invitado
+  username_setup_done = true,     -- evita la pantalla /join de invitado
+  platform_invites_remaining = 9999  -- opcional; el admin es ilimitado en la API
 where lower(email) = lower('admin@tu-dominio.com');
 
 -- Si el UPDATE no tocó ninguna fila, el perfil no existe. Crea el usuario

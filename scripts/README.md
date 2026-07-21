@@ -31,5 +31,5 @@ Detalle paso a paso: raíz del repo → **DEPLOY.md** sección **2.1**.
 |----------|--------|-----|
 | `VITE_SUPABASE_URL` | Project URL | Cliente |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_…` | Cliente |
-| `SUPABASE_SECRET_KEY` | `sb_secret_…` | Solo server (`/api/invite-user`, `/api/decline-invite`) |
+| `SUPABASE_SECRET_KEY` | `sb_secret_…` | Solo server (`invite-user`, `decline-invite`, `set-invite-quota`) |
 | `APP_URL` | URL de la app | Redirect de invitaciones → `/join` |

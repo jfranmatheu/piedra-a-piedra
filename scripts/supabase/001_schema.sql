@@ -14,6 +14,9 @@ create table if not exists public.profiles (
   is_platform_admin boolean not null default false,
   -- false hasta que el usuario elige username en onboarding (ver 006)
   username_setup_done boolean not null default false,
+  -- invitaciones a la plataforma que aún puede enviar (admin = ilimitado en API)
+  platform_invites_remaining integer not null default 0
+    check (platform_invites_remaining >= 0),
   created_at timestamptz not null default now(),
   constraint profiles_username_key unique (username),
   constraint profiles_username_format check (username ~ '^[a-z0-9_]{3,32}$')
@@ -29,6 +32,9 @@ create table if not exists public.platform_invites (
   invited_by uuid references public.profiles (id) on delete set null,
   status text not null default 'pending'
     check (status in ('pending', 'accepted', 'revoked')),
+  -- cupo de invitaciones que recibirá el invitado al crear su cuenta
+  grants_quota integer not null default 3
+    check (grants_quota >= 0 and grants_quota <= 1000),
   created_at timestamptz not null default now()
 );
 
@@ -168,6 +174,7 @@ declare
   base_username text;
   final_username text;
   n int := 0;
+  v_quota int := 0;
 begin
   base_username := lower(regexp_replace(
     split_part(coalesce(new.email, new.id::text), '@', 1),
@@ -188,16 +195,29 @@ begin
     final_username := base_username || n::text;
   end loop;
 
-  insert into public.profiles (id, username, email, display_name, username_setup_done)
+  select pi.grants_quota into v_quota
+  from public.platform_invites pi
+  where lower(pi.email) = lower(new.email)
+    and pi.status = 'pending'
+  order by pi.created_at desc
+  limit 1;
+  if v_quota is null then
+    v_quota := 0;
+  end if;
+
+  insert into public.profiles (
+    id, username, email, display_name,
+    username_setup_done, platform_invites_remaining
+  )
   values (
     new.id,
     final_username,
     new.email,
     coalesce(new.raw_user_meta_data->>'display_name', final_username),
-    false
+    false,
+    v_quota
   );
 
-  -- marcar invite de plataforma como accepted
   update public.platform_invites
   set status = 'accepted'
   where lower(email) = lower(new.email)

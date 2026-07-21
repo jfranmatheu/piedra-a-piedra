@@ -439,14 +439,42 @@ export async function markNotificationRead(id) {
   if (error) throw error;
 }
 
-export async function invitePlatformUser(email, accessToken) {
+/**
+ * Invita a la plataforma por email.
+ * @param {string} email
+ * @param {string} accessToken
+ * @param {{ grantQuota?: number }} [opts] — solo admin puede fijar cupo del invitado (default 3)
+ */
+export async function invitePlatformUser(email, accessToken, opts = {}) {
+  const body = { email };
+  if (opts.grantQuota != null) body.grantQuota = opts.grantQuota;
   const res = await fetch("/api/invite-user", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+  return json;
+}
+
+/**
+ * Admin: asigna platform_invites_remaining a un usuario existente (email o username).
+ */
+export async function setPlatformInviteQuota(
+  { email, username, quota },
+  accessToken
+) {
+  const res = await fetch("/api/set-invite-quota", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ email, username, quota }),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);

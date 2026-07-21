@@ -7,7 +7,15 @@ import ProfileSettingsModal from "../components/ProfileSettingsModal";
 import ProjectSettingsModal from "../components/ProjectSettingsModal";
 
 export default function ProjectsPage() {
-  const { profile, session, isPlatformAdmin, signOut, refreshProfile } = useAuth();
+  const {
+    profile,
+    session,
+    isPlatformAdmin,
+    canInviteToPlatform,
+    invitesRemaining,
+    signOut,
+    refreshProfile,
+  } = useAuth();
   const [projects, setProjects] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +24,11 @@ export default function ProjectsPage() {
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteGrantQuota, setInviteGrantQuota] = useState(3);
   const [inviteMsg, setInviteMsg] = useState(null);
+  const [quotaTarget, setQuotaTarget] = useState("");
+  const [quotaValue, setQuotaValue] = useState(3);
+  const [quotaMsg, setQuotaMsg] = useState(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [manageProject, setManageProject] = useState(null);
 
@@ -58,11 +70,57 @@ export default function ProjectsPage() {
     e.preventDefault();
     setInviteMsg(null);
     try {
-      await api.invitePlatformUser(inviteEmail, session.access_token);
-      setInviteMsg(`Invitación enviada a ${inviteEmail}`);
+      const opts = isPlatformAdmin
+        ? { grantQuota: Number(inviteGrantQuota) || 0 }
+        : {};
+      const res = await api.invitePlatformUser(
+        inviteEmail,
+        session.access_token,
+        opts
+      );
+      const grant = res.grantQuota ?? inviteGrantQuota;
+      setInviteMsg(
+        `Invitación enviada a ${inviteEmail} (recibirá ${grant} invitaciones propias)` +
+          (res.unlimited
+            ? ""
+            : res.invitesRemaining != null
+              ? `. Te quedan ${res.invitesRemaining}.`
+              : "")
+      );
       setInviteEmail("");
+      await refreshProfile();
     } catch (err) {
       setInviteMsg(err.message);
+    }
+  };
+
+  const assignQuota = async (e) => {
+    e.preventDefault();
+    setQuotaMsg(null);
+    const raw = quotaTarget.trim();
+    if (!raw) {
+      setQuotaMsg("Indica email o @username");
+      return;
+    }
+    // email real vs @username (si empieza por @ → username)
+    const isEmail = raw.includes("@") && !raw.startsWith("@");
+    try {
+      const res = await api.setPlatformInviteQuota(
+        {
+          quota: Number(quotaValue) || 0,
+          ...(isEmail
+            ? { email: raw }
+            : { username: raw.replace(/^@/, "") }),
+        },
+        session.access_token
+      );
+      setQuotaMsg(
+        `Cupo de @${res.user?.username || raw} = ${res.user?.platform_invites_remaining} invitaciones` +
+          (res.previousQuota != null ? ` (antes ${res.previousQuota})` : "")
+      );
+      setQuotaTarget("");
+    } catch (err) {
+      setQuotaMsg(err.message);
     }
   };
 
@@ -266,21 +324,53 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        {/* Platform admin invite */}
-        {isPlatformAdmin && (
+        {/* Invitar a la plataforma (admin o usuarios con cupo) */}
+        {canInviteToPlatform && (
           <section className="rounded-2xl border border-border bg-elev p-5">
-            <h2 className="mb-3 flex items-center gap-2 font-bold">
+            <h2 className="mb-1 flex items-center gap-2 font-bold">
               <UserPlus size={16} className="text-accent" /> Invitar a la plataforma
             </h2>
-            <form onSubmit={invitePlatform} className="flex flex-wrap gap-2">
-              <input
-                type="email"
-                required
-                placeholder="email@ejemplo.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                className="min-w-[220px] flex-1 rounded-xl border border-border bg-black/40 px-3 py-2 text-sm outline-none"
-              />
+            <p className="mb-3 text-xs text-mute">
+              {isPlatformAdmin ? (
+                <>
+                  Como admin tienes invitaciones <strong className="text-dim">ilimitadas</strong>.
+                  Puedes decidir cuántas invitaciones tendrá el nuevo usuario (por defecto 3).
+                </>
+              ) : (
+                <>
+                  Te quedan{" "}
+                  <strong className="text-text">{invitesRemaining}</strong> invitación
+                  {invitesRemaining === 1 ? "" : "es"}. Cada envío consume 1; el invitado
+                  recibe 3 invitaciones propias.
+                </>
+              )}
+            </p>
+            <form onSubmit={invitePlatform} className="flex flex-wrap items-end gap-2">
+              <label className="min-w-[200px] flex-1 text-xs text-mute">
+                Email del invitado
+                <input
+                  type="email"
+                  required
+                  placeholder="email@ejemplo.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2 text-sm text-text outline-none"
+                />
+              </label>
+              {isPlatformAdmin && (
+                <label className="w-28 text-xs text-mute">
+                  Cupo del invitado
+                  <input
+                    type="number"
+                    min={0}
+                    max={1000}
+                    step={1}
+                    value={inviteGrantQuota}
+                    onChange={(e) => setInviteGrantQuota(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2 text-sm text-text outline-none"
+                  />
+                </label>
+              )}
               <button
                 type="submit"
                 className="rounded-xl border border-accent/40 bg-accent/20 px-4 py-2 text-sm font-semibold"
@@ -290,11 +380,54 @@ export default function ProjectsPage() {
             </form>
             {inviteMsg && <p className="mt-2 text-sm text-dim">{inviteMsg}</p>}
             <p className="mt-2 text-[11px] text-mute">
-              El invitado llega a <code>/join</code> (elige @username y contraseña, o
-              rechaza). Usa el dominio <strong>público de Production</strong> en{" "}
-              <code>APP_URL</code>; si el enlace manda a <code>vercel.com/login</code>,
-              desactiva Deployment Protection en Production (ver DEPLOY.md).
+              El invitado abre el email → <code>/join</code> (username + contraseña, o
+              rechaza). <code>APP_URL</code> debe ser el dominio público de Production.
             </p>
+          </section>
+        )}
+
+        {/* Admin: asignar cupo a usuario existente */}
+        {isPlatformAdmin && (
+          <section className="rounded-2xl border border-border bg-elev p-5">
+            <h2 className="mb-1 flex items-center gap-2 font-bold">
+              <Shield size={16} className="text-accent" /> Asignar invitaciones a un usuario
+            </h2>
+            <p className="mb-3 text-xs text-mute">
+              Define cuántas invitaciones a la plataforma puede enviar un usuario que{" "}
+              <strong className="text-dim">ya está registrado</strong> (por email o
+              @username). El valor es absoluto (no se suma al anterior).
+            </p>
+            <form onSubmit={assignQuota} className="flex flex-wrap items-end gap-2">
+              <label className="min-w-[180px] flex-1 text-xs text-mute">
+                Email o @username
+                <input
+                  required
+                  placeholder="amigo@mail.com o @username"
+                  value={quotaTarget}
+                  onChange={(e) => setQuotaTarget(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2 text-sm text-text outline-none"
+                />
+              </label>
+              <label className="w-28 text-xs text-mute">
+                Nº invitaciones
+                <input
+                  type="number"
+                  min={0}
+                  max={1000}
+                  step={1}
+                  value={quotaValue}
+                  onChange={(e) => setQuotaValue(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-border bg-black/40 px-3 py-2 text-sm text-text outline-none"
+                />
+              </label>
+              <button
+                type="submit"
+                className="rounded-xl border border-accent/40 bg-accent/20 px-4 py-2 text-sm font-semibold"
+              >
+                Asignar cupo
+              </button>
+            </form>
+            {quotaMsg && <p className="mt-2 text-sm text-dim">{quotaMsg}</p>}
           </section>
         )}
       </main>

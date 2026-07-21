@@ -68,14 +68,20 @@ export function AuthProvider({ children }) {
     const needsUsernameSetup =
       !!profile && profile.username_setup_done === false;
 
+    const invitesRemaining = profile?.platform_invites_remaining ?? 0;
+    const isPlatformAdmin = !!profile?.is_platform_admin;
+    const canInviteToPlatform = isPlatformAdmin || invitesRemaining > 0;
+
     return {
       session,
       user: session?.user || null,
       profile,
       loading,
       authError,
-      isPlatformAdmin: !!profile?.is_platform_admin,
+      isPlatformAdmin,
       needsUsernameSetup,
+      invitesRemaining,
+      canInviteToPlatform,
       signIn: api.signIn,
       signOut: api.signOut,
       refreshProfile: async () => {

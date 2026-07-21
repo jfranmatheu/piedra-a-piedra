@@ -1,19 +1,18 @@
 /**
- * Vercel Serverless Function — invita un usuario a la plataforma (solo platform admin).
+ * Vercel Serverless — invita un usuario a la plataforma.
  *
- * Env (Production en Vercel):
- *   VITE_SUPABASE_URL  (o SUPABASE_URL)
- *   VITE_SUPABASE_PUBLISHABLE_KEY  (sb_publishable_...) — validar JWT del caller
- *   SUPABASE_SECRET_KEY            (sb_secret_...) — admin API (solo server)
- *   APP_URL                        (https://tu-app.vercel.app)
+ * Quién puede invitar:
+ *   - Platform admin: ilimitado; puede elegir grantQuota (default 3)
+ *   - Usuario con platform_invites_remaining > 0: consume 1; grantQuota fijo = 3
  *
- * Fallbacks legacy: VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
- *
- * POST { email: string }
+ * POST { email: string, grantQuota?: number }
  * Authorization: Bearer <user_access_token>
  */
 
 import { createClient } from "@supabase/supabase-js";
+
+const DEFAULT_GRANT_QUOTA = 3;
+const MAX_GRANT_QUOTA = 1000;
 
 function readBody(req) {
   if (req.body == null) return {};
@@ -35,6 +34,18 @@ function missingEnvMessage(url, secretKey, publishableKey) {
   }
   if (!secretKey) missing.push("SUPABASE_SECRET_KEY (o SERVICE_ROLE legacy)");
   return `Faltan variables de entorno en Vercel: ${missing.join(", ")}`;
+}
+
+function parseGrantQuota(raw, isAdmin) {
+  if (!isAdmin) return DEFAULT_GRANT_QUOTA;
+  if (raw === undefined || raw === null || raw === "") return DEFAULT_GRANT_QUOTA;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0 || n > MAX_GRANT_QUOTA || !Number.isInteger(n)) {
+    throw new Error(
+      `grantQuota debe ser un entero entre 0 y ${MAX_GRANT_QUOTA} (default ${DEFAULT_GRANT_QUOTA})`
+    );
+  }
+  return n;
 }
 
 export default async function handler(req, res) {
@@ -76,7 +87,6 @@ export default async function handler(req, res) {
       .trim()
       .replace(/\/$/, "");
 
-    // Invitados no tienen sesión de Vercel: evita URLs de equipo/preview protegidas
     try {
       const host = new URL(
         appUrl.includes("://") ? appUrl : `https://${appUrl}`
@@ -84,20 +94,14 @@ export default async function handler(req, res) {
       if (/-projects\.vercel\.app$/i.test(host)) {
         console.warn(
           "[invite-user] APP_URL parece un deploy de equipo/preview protegido:",
-          appUrl,
-          "— los invitados irán a vercel.com/login. Usa el dominio Production público y desactiva Vercel Authentication en Production."
+          appUrl
         );
       }
     } catch {
-      /* ignore bad APP_URL parse; invite will fail later if invalid */
+      /* ignore */
     }
 
     if (!url || !secretKey || !publishableKey) {
-      console.error("[invite-user] missing env", {
-        hasUrl: Boolean(url),
-        hasSecret: Boolean(secretKey),
-        hasPublishable: Boolean(publishableKey),
-      });
       return res.status(500).json({
         error: missingEnvMessage(url, secretKey, publishableKey),
       });
@@ -109,7 +113,6 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: "Unauthorized: falta Bearer token" });
     }
 
-    // Validar sesión del caller (JWT de usuario + publishable key)
     const userClient = createClient(url, publishableKey, {
       auth: {
         autoRefreshToken: false,
@@ -123,13 +126,11 @@ export default async function handler(req, res) {
     } = await userClient.auth.getUser(token);
 
     if (userErr || !user) {
-      console.error("[invite-user] getUser failed:", userErr?.message || userErr);
       return res.status(401).json({
         error: userErr?.message || "Sesión inválida o expirada",
       });
     }
 
-    // Admin client (secret) — bypass RLS + Auth Admin API
     const admin = createClient(url, secretKey, {
       auth: {
         autoRefreshToken: false,
@@ -140,24 +141,26 @@ export default async function handler(req, res) {
 
     const { data: profile, error: profileErr } = await admin
       .from("profiles")
-      .select("is_platform_admin, id")
+      .select("is_platform_admin, id, platform_invites_remaining, username")
       .eq("id", user.id)
       .maybeSingle();
 
     if (profileErr) {
-      console.error("[invite-user] profile query:", profileErr.message);
       return res.status(500).json({ error: `Perfil: ${profileErr.message}` });
     }
-
     if (!profile) {
       return res.status(403).json({
-        error: "No hay fila en profiles para tu usuario. Ejecuta el schema SQL y vuelve a crear el usuario.",
+        error: "No hay fila en profiles para tu usuario.",
       });
     }
 
-    if (!profile.is_platform_admin) {
+    const isAdmin = !!profile.is_platform_admin;
+    const remaining = profile.platform_invites_remaining ?? 0;
+
+    if (!isAdmin && remaining <= 0) {
       return res.status(403).json({
-        error: "Solo el admin de plataforma puede invitar",
+        error:
+          "No te quedan invitaciones a la plataforma. Pide al admin que te asigne cupo.",
       });
     }
 
@@ -167,56 +170,93 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Email inválido" });
     }
 
-    // Registro de invitación (no bloquear si ya existe pending)
+    let grantQuota;
+    try {
+      grantQuota = parseGrantQuota(body.grantQuota, isAdmin);
+    } catch (e) {
+      return res.status(400).json({ error: e.message });
+    }
+
+    // No invitar si ya es usuario de la plataforma
+    const { data: existingProfile } = await admin
+      .from("profiles")
+      .select("id, username")
+      .ilike("email", email)
+      .maybeSingle();
+    if (existingProfile) {
+      return res.status(400).json({
+        error: `Ese email ya tiene cuenta (@${existingProfile.username}). Usa «Asignar cupo» si quieres darle invitaciones.`,
+      });
+    }
+
     const { error: inviteRowErr } = await admin.from("platform_invites").insert({
       email,
       invited_by: profile.id,
       status: "pending",
+      grants_quota: grantQuota,
     });
     if (inviteRowErr) {
-      // unique / duplicate no es fatal; otras sí
       const msg = inviteRowErr.message || String(inviteRowErr);
       if (!/duplicate|unique|already/i.test(msg)) {
         console.warn("[invite-user] platform_invites insert:", msg);
       }
+    } else {
+      // Si re-invita con pending previo, actualizar grants_quota
+      await admin
+        .from("platform_invites")
+        .update({ grants_quota: grantQuota, invited_by: profile.id })
+        .eq("status", "pending")
+        .ilike("email", email);
     }
 
-    // El invitado aterriza en /join (debe estar en Redirect URLs de Supabase)
     const redirectTo = `${appUrl}/join`;
-    console.log("[invite-user] invite redirectTo=", redirectTo);
-
     const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
       redirectTo,
+      data: { granted_invite_quota: grantQuota },
     });
 
     if (error) {
       console.error("[invite-user] inviteUserByEmail:", error.message);
-      // Mensajes más claros para errores típicos de Auth
       let message = error.message;
       if (/redirect/i.test(message)) {
-        message += ` Añade ${redirectTo} y ${appUrl}/** en Supabase → Authentication → URL Configuration → Redirect URLs.`;
+        message += ` Añade ${redirectTo} en Supabase Redirect URLs.`;
       }
-      if (/signups? not allowed|disabled/i.test(message)) {
-        message +=
-          " En Auth → Providers → Email: desactiva “Confirm email” solo si bloquea invites, o usa Invite (admin) con email habilitado. “Enable sign ups” puede estar off (correcto para invite-only).";
-      }
-      if (/rate|limit/i.test(message)) {
-        message += " Límite de emails de Supabase; espera un rato o configura SMTP propio.";
+      if (/already|registered|exists/i.test(message)) {
+        message =
+          "Ese email ya está registrado en Auth. Si es un usuario a medias, bórralo en Authentication o asígnale cupo si ya está en la plataforma.";
       }
       return res.status(400).json({ error: message });
     }
 
-    return res.status(200).json({ ok: true, user: data?.user?.id || null });
+    // Consumir 1 invitación (no admin)
+    let newRemaining = remaining;
+    if (!isAdmin) {
+      newRemaining = Math.max(0, remaining - 1);
+      const { error: decErr } = await admin
+        .from("profiles")
+        .update({ platform_invites_remaining: newRemaining })
+        .eq("id", profile.id);
+      if (decErr) {
+        console.error("[invite-user] decrement quota:", decErr.message);
+      }
+    }
+
+    return res.status(200).json({
+      ok: true,
+      user: data?.user?.id || null,
+      grantQuota,
+      invitesRemaining: isAdmin ? null : newRemaining,
+      unlimited: isAdmin,
+    });
   } catch (err) {
     console.error("[invite-user] unhandled:", err);
     const message =
       err?.message ||
       (typeof err === "string" ? err : "Error interno al invitar");
-    // Module not found → dependencia no instalada en la función
     if (/Cannot find module|ERR_MODULE_NOT_FOUND/i.test(message)) {
       return res.status(500).json({
         error:
-          "Falta @supabase/supabase-js en el deploy de la API. El install de Vercel debe incluir dependencias de la raíz del repo (ver package.json + vercel.json).",
+          "Falta @supabase/supabase-js en el deploy de la API (package.json raíz).",
       });
     }
     return res.status(500).json({ error: message });
