@@ -446,11 +446,11 @@ export default function KanbanView() {
         onClose={() => {
           if (!creatingTask) setNewTaskStone(null);
         }}
-        onSubmit={async ({ title, xp }) => {
+        onSubmit={async (fields) => {
           if (!newTaskStone) return;
           setCreatingTask(true);
           try {
-            await addTask(newTaskStone.id, { title, xp });
+            await addTask(newTaskStone.id, fields);
             notify.success("Tarea creada");
             setNewTaskStone(null);
           } catch (e) {

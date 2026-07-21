@@ -769,6 +769,26 @@ export async function createTaskDb(projectId, stoneId, fields) {
     .select()
     .single();
   if (error) throw error;
+
+  // Assignees opcionales al crear
+  if (Array.isArray(fields.assignees) && fields.assignees.length) {
+    const userIds = [
+      ...new Set(
+        fields.assignees
+          .map((id) => (id == null ? null : String(id)))
+          .filter(Boolean)
+      ),
+    ];
+    if (userIds.length) {
+      const rows = userIds.map((user_id) => ({
+        task_id: data.id,
+        user_id,
+      }));
+      const { error: aErr } = await supabase.from("task_assignees").insert(rows);
+      if (aErr) throw aErr;
+    }
+  }
+
   return data;
 }
 

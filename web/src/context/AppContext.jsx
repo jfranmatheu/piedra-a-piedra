@@ -458,14 +458,23 @@ export function AppProvider({ children }) {
   const addTask = useCallback(
     async (stoneId, fields = {}) => {
       if (!projectId) return null;
-      const title =
+      const payload =
         typeof fields === "string"
-          ? fields
-          : fields.title || "Nueva tarea";
-      const xp =
-        typeof fields === "object" && fields.xp != null ? fields.xp : 50;
+          ? { title: fields }
+          : {
+              title: fields.title || "Nueva tarea",
+              notes: fields.notes || "",
+              xp: fields.xp ?? 50,
+              period: fields.period || "",
+              dateStart: fields.dateStart || "",
+              dateEnd: fields.dateEnd || "",
+              img: fields.img || fields.imagePath || null,
+              assignees: Array.isArray(fields.assignees)
+                ? fields.assignees
+                : [],
+            };
       try {
-        const row = await api.createTaskDb(projectId, stoneId, { title, xp });
+        const row = await api.createTaskDb(projectId, stoneId, payload);
         setModel((prev) => {
           if (!prev) return prev;
           const stones = structuredClone(prev.stones);
@@ -474,14 +483,15 @@ export function AppProvider({ children }) {
           s.tasks.push({
             id: row.id,
             title: row.title,
-            notes: "",
-            xp: row.xp,
+            notes: row.notes || payload.notes || "",
+            xp: row.xp ?? payload.xp,
             done: false,
-            period: "",
-            dateStart: "",
-            dateEnd: "",
-            img: "",
-            assignees: [],
+            period: row.period || payload.period || "",
+            dateStart: row.date_start || payload.dateStart || "",
+            dateEnd: row.date_end || payload.dateEnd || "",
+            img: row.image_path || payload.img || "",
+            imagePath: row.image_path || payload.img || "",
+            assignees: payload.assignees || [],
           });
           return { ...prev, stones };
         });
