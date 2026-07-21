@@ -1,8 +1,61 @@
 import { supabase, publicAssetUrl } from "./supabase";
 
+/** Map common PostgREST / Auth errors to actionable Spanish messages. */
+function mapSupabaseError(error, fallback = "Error de Supabase") {
+  if (!error) return new Error(fallback);
+  const status = error.status || error.statusCode || error.code;
+  const msg = (error.message || String(error)).toLowerCase();
+  const code = String(error.code || "");
+
+  if (
+    status === 401 ||
+    code === "PGRST301" ||
+    msg.includes("jwt") ||
+    msg.includes("unauthorized") ||
+    msg.includes("invalid claim")
+  ) {
+    return new Error(
+      "Sesión no válida o expirada (401). Cierra sesión, vuelve a entrar y comprueba que VITE_SUPABASE_PUBLISHABLE_KEY sea la publishable (sb_publishable_…), no la secret. Si acabas de cambiar SQL, ejecuta scripts/supabase/005_fix_rls_grants.sql."
+    );
+  }
+  if (
+    status === 403 ||
+    code === "42501" ||
+    msg.includes("permission denied") ||
+    msg.includes("row-level security") ||
+    msg.includes("rls") ||
+    msg.includes("forbidden")
+  ) {
+    return new Error(
+      "Sin permiso (403 / RLS). Ejecuta en Supabase SQL Editor: scripts/supabase/005_fix_rls_grants.sql. Si creaste el usuario antes del schema, asegúrate de tener fila en profiles (el trigger handle_new_user)."
+    );
+  }
+  if (code === "23503" || msg.includes("foreign key")) {
+    return new Error(
+      "Falta tu perfil en public.profiles (FK). En SQL: comprueba select * from profiles where id = auth.uid(); si está vacío, vuelve a crear el usuario o inserta el perfil."
+    );
+  }
+  return error instanceof Error ? error : new Error(error.message || fallback);
+}
+
+/** Ensure we have a live access token before REST calls. */
+async function requireUser() {
+  const { data: sessData, error: sessErr } = await supabase.auth.getSession();
+  if (sessErr) throw mapSupabaseError(sessErr);
+  let session = sessData.session;
+  if (!session?.access_token) {
+    throw new Error("No hay sesión. Inicia sesión de nuevo.");
+  }
+  // Prefer getUser() to validate token with Auth (refreshes if needed)
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  if (userErr) throw mapSupabaseError(userErr);
+  if (!userData.user) throw new Error("No autenticado");
+  return userData.user;
+}
+
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession();
-  if (error) throw error;
+  if (error) throw mapSupabaseError(error);
   return data.session;
 }
 
@@ -23,7 +76,7 @@ export async function getProfile(userId) {
     .select("*")
     .eq("id", userId)
     .single();
-  if (error) throw error;
+  if (error) throw mapSupabaseError(error);
   return data;
 }
 
@@ -39,6 +92,7 @@ export async function updateProfile(userId, patch) {
 }
 
 export async function listMyProjects() {
+  const user = await requireUser();
   const { data, error } = await supabase
     .from("project_members")
     .select(
@@ -49,18 +103,29 @@ export async function listMyProjects() {
       )
     `
     )
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) throw mapSupabaseError(error);
   return (data || [])
     .filter((r) => r.project)
     .map((r) => ({ ...r.project, myRole: r.role }));
 }
 
 export async function createProject({ name, description, start_date }) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("No autenticado");
+  const user = await requireUser();
+
+  // Fail early with a clear message if profile row is missing (FK owner_id → profiles)
+  const { data: profile, error: profileErr } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (profileErr) throw mapSupabaseError(profileErr);
+  if (!profile) {
+    throw new Error(
+      "No existe tu fila en public.profiles. Ejecuta el schema (001) y vuelve a crear el usuario, o inserta el perfil manualmente."
+    );
+  }
 
   const { data, error } = await supabase
     .from("projects")
@@ -72,7 +137,7 @@ export async function createProject({ name, description, start_date }) {
     })
     .select()
     .single();
-  if (error) throw error;
+  if (error) throw mapSupabaseError(error);
   return data;
 }
 
@@ -146,12 +211,13 @@ export async function declineProjectInvite(inviteId) {
 }
 
 export async function listNotifications() {
+  await requireUser();
   const { data, error } = await supabase
     .from("notifications")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(50);
-  if (error) throw error;
+  if (error) throw mapSupabaseError(error);
   return data || [];
 }
 

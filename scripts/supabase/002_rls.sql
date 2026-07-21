@@ -85,10 +85,15 @@ create policy platform_invites_admin_all on public.platform_invites
   with check (public.is_platform_admin());
 
 -- PROJECTS
+-- owner_id = auth.uid() permite INSERT…RETURNING antes/junto al trigger de membership
 drop policy if exists projects_select_member on public.projects;
 create policy projects_select_member on public.projects
   for select to authenticated
-  using (public.is_project_member(id));
+  using (
+    owner_id = auth.uid()
+    or public.is_project_member(id)
+    or public.is_platform_admin()
+  );
 
 drop policy if exists projects_insert_auth on public.projects;
 create policy projects_insert_auth on public.projects
@@ -107,10 +112,15 @@ create policy projects_delete_owner on public.projects
   using (owner_id = auth.uid() or public.is_platform_admin());
 
 -- PROJECT MEMBERS
+-- user_id = auth.uid() evita circularidad y permite listar “mis proyectos”
 drop policy if exists project_members_select on public.project_members;
 create policy project_members_select on public.project_members
   for select to authenticated
-  using (public.is_project_member(project_id));
+  using (
+    user_id = auth.uid()
+    or public.is_project_member(project_id)
+    or public.is_platform_admin()
+  );
 
 drop policy if exists project_members_insert on public.project_members;
 create policy project_members_insert on public.project_members
@@ -225,9 +235,14 @@ create policy task_assignees_write on public.task_assignees
     )
   );
 
--- Grants
-grant usage on schema public to authenticated;
+-- Grants (tablas + helpers RLS — sin EXECUTE las policies fallan con 401/403)
+grant usage on schema public to authenticated, anon;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 grant usage, select on all sequences in schema public to authenticated;
+
+grant execute on function public.is_platform_admin() to authenticated;
+grant execute on function public.is_project_member(uuid) to authenticated;
+grant execute on function public.project_role(uuid) to authenticated;
+grant execute on function public.can_manage_project(uuid) to authenticated;
 grant execute on function public.accept_project_invite(uuid) to authenticated;
 grant execute on function public.decline_project_invite(uuid) to authenticated;
