@@ -114,16 +114,65 @@ where is_platform_admin = true;
 7. La función `api/invite-user.js` invita usuarios por email (solo platform admin).  
    El `installCommand` de Vercel instala dependencias de **raíz** (`@supabase/supabase-js` para la API) y de `web/`.
 
+### Si el enlace de invitación manda a `vercel.com/login`
+
+Eso **no es** login de Piedra a Piedra ni de Supabase. Es **Deployment Protection** de Vercel (SSO): el deploy exige cuenta de Vercel.
+
+Síntomas típicos en la URL final:
+
+- `https://vercel.com/login?next=...sso-api...`
+- a veces también `error_code=otp_expired` (token de invite caducado o ya usado)
+
+**Causa 1 — URL de preview / equipo protegida**
+
+Ejemplo problemático:  
+`https://piedra-a-piedra-….vercel.app` o `…-jfmatheugs-projects.vercel.app`
+
+1. Vercel → tu proyecto → **Settings → Deployment Protection**
+2. Para **Production**: desactiva **Vercel Authentication** (la app debe ser pública; el login lo hace Supabase).
+3. Preview puede seguir protegido si quieres; **no uses URLs de preview en las invitaciones**.
+
+**Causa 2 — `APP_URL` incorrecta en Vercel**
+
+1. Vercel → **Settings → Environment Variables → Production**
+2. `APP_URL` = dominio **público de Production**, sin `/` final, por ejemplo:
+   - `https://piedra-a-piedra.vercel.app`  
+   - o tu dominio custom  
+   **No** uses la URL de un deployment concreto ni la de `…-projects.vercel.app` si está protegida.
+3. Redeploy después de cambiar `APP_URL`.
+
+**Causa 3 — Redirect URLs en Supabase**
+
+Supabase → **Authentication → URL Configuration**:
+
+| Campo | Valor |
+|--------|--------|
+| **Site URL** | `https://tu-dominio-publico.vercel.app` (mismo que `APP_URL`) |
+| **Redirect URLs** | `https://tu-dominio-publico.vercel.app/**`  
+| | y/o `https://tu-dominio-publico.vercel.app/join` |
+
+El mail de invite debe llevar  
+`redirect_to=https://tu-dominio-publico.vercel.app/join`  
+(no solo `/` y no una URL de Vercel login).
+
+**Causa 4 — Token caducado (`otp_expired`)**
+
+Los enlaces de invite son de un solo uso y caducan. Vuelve a invitar desde la app y abre el **correo nuevo** en una ventana de incógnito (sin sesión de Vercel).
+
+**Checklist rápido**
+
+1. Production **sin** Vercel Authentication.  
+2. `APP_URL` = dominio público Production.  
+3. Supabase Site URL + Redirect URLs alineados con `APP_URL` + `/join`.  
+4. Nueva invitación → abrir en incógnito → debe cargar **tu app** en `/join`, no vercel.com.
+
 ### Si `POST /api/invite-user` devuelve 500
 
-1. Vercel → **Settings → Environment Variables**: debe existir `SUPABASE_SECRET_KEY` (`sb_secret_…`) en **Production** (no solo en el build del front).
-2. `APP_URL` = URL real de la app (`https://piedra-a-piedra.vercel.app`, sin barra final).
-3. Supabase → **Authentication → URL Configuration**:
-   - Site URL = tu `APP_URL`
-   - Redirect URLs incluye `https://tu-app.vercel.app/**` y en particular `…/join` (alta por invitación)
-4. Tu usuario debe tener `is_platform_admin = true` en `profiles` (script `004_setup_admin.sql`).
-5. Redeploy con el código nuevo (raíz con `package.json` + `@supabase/supabase-js`).
-6. Logs: Vercel → Deployments → función → **Logs** / Runtime Logs; el body JSON del 500 ahora incluye el motivo.
+1. Vercel → **Settings → Environment Variables**: debe existir `SUPABASE_SECRET_KEY` (`sb_secret_…`) en **Production**.
+2. `APP_URL` = dominio público de Production (ver arriba).
+3. Supabase Redirect URLs incluyen `…/join`.
+4. Tu usuario con `is_platform_admin = true` (`004_setup_admin.sql`).
+5. Redeploy; revisa Runtime Logs de la función.
 
 ### Si ves “Faltan VITE_SUPABASE_…”
 

@@ -72,7 +72,25 @@ export default async function handler(req, res) {
       process.env.APP_URL ||
       process.env.VITE_APP_URL ||
       "http://localhost:5173"
-    ).replace(/\/$/, "");
+    )
+      .trim()
+      .replace(/\/$/, "");
+
+    // Invitados no tienen sesión de Vercel: evita URLs de equipo/preview protegidas
+    try {
+      const host = new URL(
+        appUrl.includes("://") ? appUrl : `https://${appUrl}`
+      ).hostname;
+      if (/-projects\.vercel\.app$/i.test(host)) {
+        console.warn(
+          "[invite-user] APP_URL parece un deploy de equipo/preview protegido:",
+          appUrl,
+          "— los invitados irán a vercel.com/login. Usa el dominio Production público y desactiva Vercel Authentication en Production."
+        );
+      }
+    } catch {
+      /* ignore bad APP_URL parse; invite will fail later if invalid */
+    }
 
     if (!url || !secretKey || !publishableKey) {
       console.error("[invite-user] missing env", {
@@ -163,9 +181,12 @@ export default async function handler(req, res) {
       }
     }
 
-    // El invitado aterriza en /join para elegir username + contraseña (o rechazar)
+    // El invitado aterriza en /join (debe estar en Redirect URLs de Supabase)
+    const redirectTo = `${appUrl}/join`;
+    console.log("[invite-user] invite redirectTo=", redirectTo);
+
     const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${appUrl}/join`,
+      redirectTo,
     });
 
     if (error) {
@@ -173,7 +194,7 @@ export default async function handler(req, res) {
       // Mensajes más claros para errores típicos de Auth
       let message = error.message;
       if (/redirect/i.test(message)) {
-        message += ` Añade ${appUrl} en Supabase → Authentication → URL Configuration → Redirect URLs.`;
+        message += ` Añade ${redirectTo} y ${appUrl}/** en Supabase → Authentication → URL Configuration → Redirect URLs.`;
       }
       if (/signups? not allowed|disabled/i.test(message)) {
         message +=

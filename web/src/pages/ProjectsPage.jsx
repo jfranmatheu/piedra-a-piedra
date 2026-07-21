@@ -290,10 +290,10 @@ export default function ProjectsPage() {
             </form>
             {inviteMsg && <p className="mt-2 text-sm text-dim">{inviteMsg}</p>}
             <p className="mt-2 text-[11px] text-mute">
-              El invitado llega a <code>/join</code>, elige @username y contraseña
-              (o rechaza y se borra de Auth). Requiere{" "}
-              <code>/api/invite-user</code>, <code>/api/decline-invite</code> y{" "}
-              <code>SUPABASE_SECRET_KEY</code>.
+              El invitado llega a <code>/join</code> (elige @username y contraseña, o
+              rechaza). Usa el dominio <strong>público de Production</strong> en{" "}
+              <code>APP_URL</code>; si el enlace manda a <code>vercel.com/login</code>,
+              desactiva Deployment Protection en Production (ver DEPLOY.md).
             </p>
           </section>
         )}
