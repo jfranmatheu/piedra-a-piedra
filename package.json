@@ -1,9 +1,13 @@
 {
   "name": "piedra-a-piedra",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "npm --prefix web run dev",
     "build": "npm --prefix web run build",
     "preview": "npm --prefix web run preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.8"
   }
 }

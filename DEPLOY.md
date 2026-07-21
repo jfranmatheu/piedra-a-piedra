@@ -47,18 +47,30 @@ where lower(email) = lower('TU_ADMIN@email.com');
    Marca **Production** (y Preview si quieres).  
    Los nombres deben llevar el prefijo `VITE_` para el cliente:
 
-| Name | Value |
-|------|--------|
-| `VITE_SUPABASE_URL` | `https://xxx.supabase.co` |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_…` |
-| `SUPABASE_SECRET_KEY` | `sb_secret_…` (solo server; **sin** `VITE_`) |
-| `APP_URL` | `https://tu-app.vercel.app` |
+| Name | Value | Scope |
+|------|--------|--------|
+| `VITE_SUPABASE_URL` | `https://xxx.supabase.co` | Production (+ Preview) |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_…` | Production |
+| `SUPABASE_SECRET_KEY` | `sb_secret_…` (**sin** `VITE_`) | Production |
+| `APP_URL` | `https://tu-app.vercel.app` | Production |
 
 6. **Redeploy obligatorio** después de crear/cambiar env vars:  
    Deployments → ⋮ en el último deploy → **Redeploy**  
    (Vite embebe `VITE_*` en el build; si no redespliegas, el JS sigue vacío.)
 
-7. La función `api/invite-user.js` invita usuarios por email (solo platform admin).
+7. La función `api/invite-user.js` invita usuarios por email (solo platform admin).  
+   El `installCommand` de Vercel instala dependencias de **raíz** (`@supabase/supabase-js` para la API) y de `web/`.
+
+### Si `POST /api/invite-user` devuelve 500
+
+1. Vercel → **Settings → Environment Variables**: debe existir `SUPABASE_SECRET_KEY` (`sb_secret_…`) en **Production** (no solo en el build del front).
+2. `APP_URL` = URL real de la app (`https://piedra-a-piedra.vercel.app`, sin barra final).
+3. Supabase → **Authentication → URL Configuration**:
+   - Site URL = tu `APP_URL`
+   - Redirect URLs incluye `https://tu-app.vercel.app/**` o al menos `…/login`
+4. Tu usuario debe tener `is_platform_admin = true` en `profiles` (script `004_setup_admin.sql`).
+5. Redeploy con el código nuevo (raíz con `package.json` + `@supabase/supabase-js`).
+6. Logs: Vercel → Deployments → función → **Logs** / Runtime Logs; el body JSON del 500 ahora incluye el motivo.
 
 ### Si ves “Faltan VITE_SUPABASE_…”
 
