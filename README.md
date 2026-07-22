@@ -1,67 +1,41 @@
 # Piedra a Piedra
 
-Roadmap multi-proyecto (milestones + tareas) con **React**, **Supabase** (auth, DB, storage) y deploy gratuito en **Vercel / Netlify**.
+Gamified multi-project roadmap: **stones** (milestones), **XP tasks**, **Kanban / Timeline / Panel**, native **`.stones`** format, and optional **NVIDIA NIM** AI edits under review.
 
-> Ya no usa archivos locales `.stones` ni carpeta `images/`. Todo vive en Supabase.
+Invite-only access · React + Supabase + Vercel
 
-## Características
+---
 
-- Login **solo por invitación** (sin sign-up público)
-- Usuario **admin de plataforma** invita por email
-- Cada usuario crea **proyectos** y ve a los que se unió
-- Owner/admin de proyecto invita por **@username**
-- **Notificaciones** de invitación
-- Por proyecto: piedras, tareas, miembros, Kanban / Timeline / Panel
-- Assets en **Supabase Storage**
+## Choose your language / Elige idioma
 
-## Quick start (local)
+| Language | README | Deploy |
+|----------|--------|--------|
+| **English** | [docs/en/README.md](./docs/en/README.md) | [docs/en/DEPLOY.md](./docs/en/DEPLOY.md) |
+| **Español** | [docs/es/README.md](./docs/es/README.md) | [docs/es/DEPLOY.md](./docs/es/DEPLOY.md) |
 
-1. Crea proyecto Supabase y ejecuta SQL en `scripts/supabase/` (ver `scripts/README.md` y `DEPLOY.md`).
-2. Configura env:
+Full docs folder index: **[docs/README.md](./docs/README.md)**
 
-```bash
-cd web
-cp .env.example .env.local
-# VITE_SUPABASE_URL=...
-# VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-npm install
-npm run dev
-```
+---
 
-3. Abre http://localhost:5173
+## Board views / Vistas del board
 
-## Deploy y setup del admin
+| Kanban | Timeline | Panel |
+|--------|----------|-------|
+| ![Kanban](./docs/images/view_kanban.png) | ![Timeline](./docs/images/view_timeline.png) | ![Panel](./docs/images/view_panel.png) |
 
-Ver **[DEPLOY.md](./DEPLOY.md)** — fork → Supabase → Vercel/Netlify.
+---
 
-**Admin (resumen):** no se invita por email. En Supabase → Authentication → Users → **Add user** con **email + password** (Auto Confirm). Luego SQL (`004_setup_admin.sql`): `is_platform_admin = true`, `username_setup_done = true`. Entrar en la app en `/login` con ese email y esa contraseña.
+## Quick links
 
-## Estructura
+- **[English README](./docs/en/README.md)** — features, setup, AI
+- **[README en español](./docs/es/README.md)** — características, setup, IA
+- **[Deploy (EN)](./docs/en/DEPLOY.md)** · **[Deploy (ES)](./docs/es/DEPLOY.md)**
+- **In-app docs:** `/docs` · `/docs/stones` · `/docs/ai`
 
-```
-piedra-a-piedra/
-├── web/                 # React (Vite + Tailwind + Lucide)
-│   ├── src/
-│   └── api/             # helper invite (también en /api)
-├── api/invite-user.js   # Vercel serverless invite
-├── scripts/supabase/    # SQL schema, RLS, storage
-├── DEPLOY.md
-└── dist/                # build output
-```
+## Stack
 
-## Scripts Supabase
+React 19 · Vite · Tailwind · Supabase (Auth, Postgres, Storage, RLS) · Vercel serverless · NVIDIA NIM (optional)
 
-```
-scripts/supabase/001_schema.sql
-scripts/supabase/002_rls.sql
-scripts/supabase/003_storage.sql
-scripts/supabase/004_setup_admin.sql
-```
+## License
 
-```powershell
-.\scripts\apply-supabase.ps1
-```
-
-## Licencia
-
-Uso libre para forks y self-hosting.
+Free for forks and self-hosting. Non-commercial usage.

@@ -23,7 +23,10 @@ El admin **no** usa el flujo `/join` de invitados.
 2. Ejecuta el `UPDATE` de `004_setup_admin.sql` (email, username, `is_platform_admin`, `username_setup_done = true`).
 3. App → `/login` con ese email y esa password.
 
-Detalle paso a paso: raíz del repo → **DEPLOY.md** sección **2.1**.
+Detalle paso a paso:
+
+- Español: [`docs/es/DEPLOY.md`](../docs/es/DEPLOY.md) sección **2.1**
+- English: [`docs/en/DEPLOY.md`](../docs/en/DEPLOY.md) section **2.1**
 
 ## Variables de entorno
 

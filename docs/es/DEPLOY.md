@@ -1,5 +1,7 @@
 # Deploy — Piedra a Piedra (Supabase + Vercel/Netlify)
 
+**[English →](../en/DEPLOY.md)** · **[README (ES)](./README.md)** · **[Índice docs](../README.md)**
+
 Guía para **fork → Supabase → Vercel o Netlify** (plan free).
 
 ## 1. Fork del repositorio
@@ -197,6 +199,7 @@ Los enlaces de invite son de un solo uso y caducan. Vuelve a invitar desde la ap
 6. El invitado de proyecto acepta la notificación → entra al proyecto.
 7. Username editable en **Perfil** del hub.
 8. Kanban / Timeline / Panel; assets en `project-assets`.
+9. Opcional: Perfil → API key **NVIDIA NIM** → **Editar con IA** en un proyecto.
 
 ## 6. Desarrollo local
 
@@ -208,13 +211,15 @@ npm install
 npm run dev
 ```
 
-Para probar `/api/invite-user` en local, usa `vercel dev` desde la raíz o un proxy a la función.
+Para probar `/api/invite-user` en local con el enrutado completo de Vercel, usa `vercel dev` desde la raíz.  
+`/api/nim-chat` también está disponible con el middleware de Vite en `npm run dev`.
 
 ## Seguridad
 
-- Usa **publishable** en el cliente y **secret** solo en el servidor (función invite).
+- Usa **publishable** en el cliente y **secret** solo en el servidor (invite / waitlist / APIs relacionadas).
 - Nunca expongas `SUPABASE_SECRET_KEY` / `service_role` con prefijo `VITE_*`.
 - Sign-up público desactivado.
 - RLS: solo miembros del proyecto ven/editan sus piedras y tareas.
+- Las API keys de NIM se quedan en el navegador del usuario; el servidor hace de proxy y no las persiste.
 
 Las claves JWT legacy (`anon` / `service_role`) siguen funcionando en paralelo hasta que las desactives en el dashboard; el código acepta fallback legacy si hace falta.

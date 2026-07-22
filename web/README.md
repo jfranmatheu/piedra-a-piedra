@@ -8,4 +8,11 @@ npm install
 npm run dev
 ```
 
-Ver `../DEPLOY.md` y `../scripts/README.md` para Supabase y deploy.
+## Docs
+
+| Lang | README | Deploy |
+|------|--------|--------|
+| EN | [../docs/en/README.md](../docs/en/README.md) | [../docs/en/DEPLOY.md](../docs/en/DEPLOY.md) |
+| ES | [../docs/es/README.md](../docs/es/README.md) | [../docs/es/DEPLOY.md](../docs/es/DEPLOY.md) |
+
+Also: [../docs/README.md](../docs/README.md) · [../scripts/README.md](../scripts/README.md)
